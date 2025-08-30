@@ -1,0 +1,83 @@
+package component:line-follower-robot;
+
+world line-follower-robot {
+    import sensors: interface {
+        enum read-error {
+            index-out-of-range,
+            invalid-handle-type,
+            invalid-handle,
+        }
+
+        type time-us = u32;
+
+        current-time: func() -> time-us;
+        sleep-blocking-for: func(us: time-us);
+        sleep-blocking-until: func(us: time-us);
+
+        enum sensor-kind {
+            line,
+            imu,
+            angle,
+        }
+        record sensor-index-range {
+            start: u8,
+            count: u8,
+        }
+        type sensor-value = s16;
+        type sensor-values = list<sensor-value>;
+
+        read-sensor-blocking: func(sensor: sensor-kind, indexes: sensor-index-range) -> result<sensor-values, read-error>;
+
+        type future-handle = u32;
+        variant async-void-result {
+            blocked,
+            ready,
+        }
+        variant async-sensor-result {
+            blocked,
+            ready(sensor-values),
+        }
+
+        sleep-async-for: func(us: time-us) -> future-handle;
+        sleep-async-until: func(us: time-us) -> future-handle;
+        read-sensor-async: func(sensor: sensor-kind, sensor-index-range: sensor-index-range) -> future-handle;
+
+        poll-timer: func(handle: future-handle) -> result<async-void-result, read-error>;
+        poll-sensor: func(handle: future-handle) -> result<async-sensor-result, read-error>;
+        forget-handle: func(handle: future-handle);
+    }
+
+    import motors: interface {
+        type motor-power = s16;
+        set-power: func(left: motor-power, right: motor-power);
+    }
+
+    export robot: interface {
+        record color {
+            r: u8,
+            g: u8,
+            b: u8,
+        }
+
+        record configuration {
+            name: string,
+            color-main: color,
+            color-secondary: color,
+
+            width-axle: s32,
+            length-front: s32,
+            length-back: s32,
+            clearing-back: s32,
+
+            wheel-radius: s32,
+            gear-ratio-num: s32,
+            gear-ratio-den: s32,
+
+            front-sensors-spacing: s32,
+            front-sensors-height: s32,
+        }
+
+        setup: func() -> configuration;
+        run: func();
+    }
+}
