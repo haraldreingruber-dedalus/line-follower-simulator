@@ -19,8 +19,14 @@ world line-follower-robot {
 
         /// Time represented as microseconds
         type time-us = u32;
+
         /// A handle to a future value
-        type future-handle = u32;
+        record future-handle {
+            /// Unique handle identifier
+            id: u32,
+            /// The time when the future will be ready
+            ready-at: time-us,
+        }
 
         /// The result of a device read operation, composed of 8 bytes.
         /// Valid configurations are:

@@ -283,7 +283,7 @@ impl bindings::devices::Host for BotHost {
 
     #[doc = " Initiate and async operation (immediately returns a handle to the future value)"]
     fn device_operation_async(&mut self, _operation: DeviceOperation) -> FutureHandle {
-        0
+        FutureHandle { id: 0, ready_at: 0 }
     }
 
     #[doc = " Poll the status of an async operation (returns immediately)"]

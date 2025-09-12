@@ -259,11 +259,30 @@ pub mod devices {
         }
     };
     /// A handle to a future value
-    pub type FutureHandle = u32;
+    #[derive(Debug, ComponentType, Lower, Lift, Clone, Copy)]
+    #[component(record)]
+    pub struct FutureHandle {
+        /// Unique handle identifier
+        #[component(name = "id")]
+        pub id: u32,
+        /// The time when the future will be ready
+        #[component(name = "ready-at")]
+        pub ready_at: TimeUs,
+    }
     const _: () = {
-        if !(4 == <FutureHandle as wasmtime::component::ComponentType>::SIZE32) {
+        #[doc(hidden)]
+        #[repr(C)]
+        #[derive(Clone, Copy)]
+        pub struct LowerFutureHandle<T0: Copy, T1: Copy> {
+            id: T0,
+            ready_at: T1,
+            _align: [wasmtime::ValRaw; 0],
+        }
+    };
+    const _: () = {
+        if !(8 == <FutureHandle as wasmtime::component::ComponentType>::SIZE32) {
             panic!(
-                "assertion failed: 4 == <FutureHandle as wasmtime::component::ComponentType>::SIZE32",
+                "assertion failed: 8 == <FutureHandle as wasmtime::component::ComponentType>::SIZE32",
             )
         }
         if !(4 == <FutureHandle as wasmtime::component::ComponentType>::ALIGN32) {
