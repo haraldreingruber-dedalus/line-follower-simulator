@@ -741,6 +741,7 @@ dependencies = [
 name = "executor-playground"
 version = "0.1.0"
 dependencies = [
+ "execution-data",
  "wasmtime",
 ]
 
