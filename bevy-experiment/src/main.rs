@@ -1,12 +1,7 @@
-use std::f32::consts::{FRAC_2_PI, FRAC_PI_2, PI};
-use std::rc::Rc;
-use std::sync::Arc;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::ecs::system::{RunSystemOnce, command};
-use bevy::ecs::world;
 use bevy::prelude::*;
-use bevy::scene::ron::de;
 use bevy::text::cosmic_text::Angle;
 use bevy_editor_cam::DefaultEditorCamPlugins;
 use bevy_editor_cam::prelude::{EditorCam, OrbitConstraint};
@@ -435,7 +430,7 @@ fn set_motors_torque(
     }
 }
 
-fn ray_cast_example(
+fn _ray_cast_example(
     read_rapier_context: ReadRapierContext,
     body_query: Query<(&Motors, &GlobalTransform)>,
     gt_query: Query<&GlobalTransform>,
