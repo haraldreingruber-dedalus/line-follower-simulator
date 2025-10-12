@@ -8,10 +8,10 @@ use bevy_editor_cam::prelude::{EditorCam, OrbitConstraint};
 use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::rapier::prelude::IntegrationParameters;
 
-const TRACK_HALF_WIDTH: f32 = 4.0;
-const TRACK_HALF_HEIGHT: f32 = 0.1;
-const TRACK_TIPS_LENGTH: f32 = 10.0;
-const TRACK_Z_OFFSET: f32 = -1.5;
+const TRACK_HALF_WIDTH: f32 = 0.1;
+const TRACK_HALF_HEIGHT: f32 = 0.001;
+const TRACK_TIPS_LENGTH: f32 = 0.5;
+const TRACK_Z_OFFSET: f32 = -TRACK_HALF_HEIGHT * 2.0;
 const TRACK_CIRCLE_SEGMENTS_PER_PI: usize = 40;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -491,11 +491,11 @@ fn main() {
         // Define the track layout and spawn it.
         .insert_resource(Track::new(vec![
             TrackSegment::start(),
-            TrackSegment::straight(20.0),
-            TrackSegment::ninety_deg_turn(5.0, Side::Right),
-            TrackSegment::cyrcle_turn(10.0, Angle::from_degrees(120.0), Side::Left),
-            TrackSegment::ninety_deg_turn(10.0, Side::Left),
-            TrackSegment::cyrcle_turn(20.0, Angle::from_degrees(60.0), Side::Right),
+            TrackSegment::straight(2.0),
+            TrackSegment::ninety_deg_turn(0.5, Side::Right),
+            TrackSegment::cyrcle_turn(1.0, Angle::from_degrees(120.0), Side::Left),
+            TrackSegment::ninety_deg_turn(1.0, Side::Left),
+            TrackSegment::cyrcle_turn(2.0, Angle::from_degrees(60.0), Side::Right),
             TrackSegment::end(),
         ]))
         // Spawn text instructions for keybinds.
@@ -510,110 +510,174 @@ fn main() {
         //     ray_cast_example.in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
         // )
         // Add systems for toggling the diagnostics UI and pausing and stepping the simulation.
-        .add_systems(Startup, (setup_robot, setup_track, setup_ui).chain())
+        .add_systems(Startup, (setup_bot, setup_track, setup_ui).chain())
         .run();
 }
 
-fn setup_robot(mut commands: Commands) {
-    // Static car body with motors
-    let car_body = commands
+// Robot configuration structure:
+
+// pub struct Configuration {
+//     /// Robot name
+//     pub name: _rt::String,
+//     /// Main color
+//     pub color_main: Color,
+//     /// Secondary color
+//     pub color_secondary: Color,
+//     /// Axle width from wheel to wheel (in mm, 100 to 200)
+//     pub width_axle: f32,
+//     /// Length from wheel axles to front (in mm, 100 to 300)
+//     pub length_front: f32,
+//     /// Length from wheel axles to back (in mm, 10 to 50)
+//     pub length_back: f32,
+//     /// Clearing from robot to ground at the robot back (in mm, from 1 to wheels radius)
+//     pub clearing_back: f32,
+//     /// Diameter of robot wheels (in mm, from 20 to 40)
+//     pub wheel_diameter: f32,
+//     /// Transmission gear ratio numerator (from 1 to 100)
+//     pub gear_ratio_num: u32,
+//     /// Transmission gear ratio denumerator (from 1 to 100)
+//     pub gear_ratio_den: u32,
+//     /// Spacing of line sensors (in mm, from 1 to 15)
+//     pub front_sensors_spacing: f32,
+//     /// Height of line sensors from the ground (in mm, from 1 to wheels radius)
+//     pub front_sensors_height: f32,
+// }
+
+const BOT_WHEEL_WIDTH: f32 = 0.5;
+const BOT_BODY_LENGHT_MIN: f32 = 0.04;
+const BOT_BODY_LENGHT_PERCENT_OF_TOTAL: f32 = 0.6;
+const BOT_BODY_WIDTH: f32 = 0.09;
+const BOT_BODY_HEIGHT: f32 = 0.02;
+const BOT_OFFSET_Y_FRONT_LENGHT_PERCENT: f32 = 0.1;
+
+const BOT_BUMPER_DIAMETER: f32 = BOT_BODY_HEIGHT / 2.0;
+const BOT_BUMPER_WIDTH: f32 = BOT_BODY_WIDTH / 2.0;
+
+fn setup_bot(mut commands: Commands) {
+    // Axle width from wheel to wheel (in mm, 100 to 200)
+    let width_axle: f32 = 100.0 / 1000.0;
+    // Length from wheel axles to front (in mm, 100 to 300)
+    let length_front: f32 = 100.0 / 1000.0;
+    // Length from wheel axles to back (in mm, 10 to 50)
+    let length_back: f32 = 20.0 / 1000.0;
+    // Clearing from robot to ground at the robot back (in mm, from 1 to wheels radius)
+    let clearing_back: f32 = 10.0 / 1000.0;
+    // Diameter of robot wheels (in mm, from 20 to 40)
+    let wheel_diameter: f32 = 20.0 / 1000.0;
+    // Transmission gear ratio numerator (from 1 to 100)
+    let gear_ratio_num: u32 = 1;
+    // Transmission gear ratio denumerator (from 1 to 100)
+    let gear_ratio_den: u32 = 1;
+    // Spacing of line sensors (in mm, from 1 to 15)
+    let front_sensors_spacing: f32 = 15.0 / 1000.0;
+    // Height of line sensors from the ground (in mm, from 1 to wheels radius)
+    let front_sensors_height: f32 = 2.0 / 1000.0;
+
+    let body_offset_z: f32 = clearing_back;
+
+    // Static body with motors
+    let body = commands
         .spawn((
-            Collider::cuboid(0.5, 0.5, 0.5),
+            Collider::cuboid(
+                BOT_BODY_WIDTH * 0.5,
+                (BOT_BODY_LENGHT_MIN
+                    + BOT_BODY_LENGHT_PERCENT_OF_TOTAL * (length_front + length_back))
+                    * 0.5,
+                BOT_BODY_HEIGHT * 0.5,
+            ),
             RigidBody::Dynamic,
             Friction {
                 coefficient: 0.1,
                 combine_rule: CoefficientCombineRule::Min,
             },
-            ColliderMassProperties::Density(0.5),
-            Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::new(3.0, 0.9, 0.5)),
+            ColliderMassProperties::Density(1.0),
+            Transform::from_xyz(
+                0.0,
+                BOT_OFFSET_Y_FRONT_LENGHT_PERCENT * length_front,
+                (body_offset_z + BOT_BODY_HEIGHT) * 0.5,
+            ),
             GlobalTransform::default(),
             Motors {
-                left_axle: Vec3::Y,
-                right_axle: Vec3::NEG_Y,
+                left_axle: Vec3::X,
+                right_axle: Vec3::NEG_X,
             },
             ExternalForce::default(),
             Velocity::zero(),
         ))
         .id();
 
-    let sensor_joint: FixedJointBuilder = FixedJointBuilder::new()
-        .local_anchor1(Vec3::new(0.0, 0.0, 0.0))
-        .local_anchor2(Vec3::new(1.5, 0.0, 0.0));
-    let _sensor_test = commands
-        .spawn((
-            Collider::cuboid(0.2, 0.2, 0.2),
-            RigidBody::Dynamic,
-            Friction {
-                coefficient: 0.1,
-                combine_rule: CoefficientCombineRule::Min,
-            },
-            Transform::from_xyz(-1.5, 0.0, 0.0),
-            GlobalTransform::default(),
-            ImpulseJoint::new(car_body, sensor_joint),
-        ))
-        .id();
+    commands.spawn((
+        Collider::compound(vec![(
+            Vec3::ZERO,
+            Quat::from_rotation_z(FRAC_PI_2),
+            Collider::cylinder(BOT_BUMPER_WIDTH / 2.0, BOT_BUMPER_DIAMETER / 2.0),
+        )]),
+        RigidBody::Dynamic,
+        Friction {
+            coefficient: 0.1,
+            combine_rule: CoefficientCombineRule::Min,
+        },
+        Transform::from_xyz(0.0, length_front, BOT_BUMPER_DIAMETER / 2.0),
+        GlobalTransform::default(),
+        ImpulseJoint::new(
+            body,
+            FixedJointBuilder::new()
+                .local_anchor1(Vec3::new(0.0, length_front, BOT_BUMPER_DIAMETER / 2.0))
+                .local_anchor2(Vec3::new(
+                    0.0,
+                    BOT_OFFSET_Y_FRONT_LENGHT_PERCENT * length_front,
+                    body_offset_z + BOT_BODY_HEIGHT * 0.5,
+                )),
+        ),
+    ));
 
-    let wheel_joints_x = 1.5;
+    // let wheel_joints_x = 1.5;
 
-    let left_wheel_joint: RevoluteJointBuilder = RevoluteJointBuilder::new(Vec3::Y)
-        .local_anchor1(Vec3::new(wheel_joints_x, 0.5, 0.0))
-        .local_anchor2(Vec3::new(0.0, -0.5, 0.0));
-    let _left_wheel = commands
-        .spawn((
-            Collider::cylinder(0.5, 0.5),
-            Transform::from_xyz(wheel_joints_x, 1.0, 0.0),
-            GlobalTransform::default(),
-            RigidBody::Dynamic,
-            Friction {
-                coefficient: 0.95,
-                combine_rule: CoefficientCombineRule::Max,
-            },
-            ColliderMassProperties::Density(0.5),
-            Wheel {
-                axle: Vec3::Y,
-                side: WheelSide::Left,
-            },
-            ExternalForce::default(),
-            ImpulseJoint::new(car_body, left_wheel_joint),
-        ))
-        .id();
+    // let left_wheel_joint: RevoluteJointBuilder = RevoluteJointBuilder::new(Vec3::Y)
+    //     .local_anchor1(Vec3::new(wheel_joints_x, 0.5, 0.0))
+    //     .local_anchor2(Vec3::new(0.0, -0.5, 0.0));
+    // let _left_wheel = commands
+    //     .spawn((
+    //         Collider::cylinder(0.5, 0.5),
+    //         Transform::from_xyz(wheel_joints_x, 1.0, 0.0),
+    //         GlobalTransform::default(),
+    //         RigidBody::Dynamic,
+    //         Friction {
+    //             coefficient: 0.95,
+    //             combine_rule: CoefficientCombineRule::Max,
+    //         },
+    //         ColliderMassProperties::Density(1.0),
+    //         Wheel {
+    //             axle: Vec3::Y,
+    //             side: WheelSide::Left,
+    //         },
+    //         ExternalForce::default(),
+    //         ImpulseJoint::new(body, left_wheel_joint),
+    //     ))
+    //     .id();
 
-    let right_wheel_joint = RevoluteJointBuilder::new(Vec3::Y)
-        .local_anchor1(Vec3::new(wheel_joints_x, -0.5, 0.0))
-        .local_anchor2(Vec3::new(0.0, 0.5, 0.0));
-    let _right_wheel = commands
-        .spawn((
-            Collider::cylinder(0.5, 0.5),
-            Transform::from_xyz(wheel_joints_x, -1.0, 0.0),
-            GlobalTransform::default(),
-            RigidBody::Dynamic,
-            Friction {
-                coefficient: 0.95,
-                combine_rule: CoefficientCombineRule::Max,
-            },
-            ColliderMassProperties::Density(0.5),
-            Wheel {
-                axle: Vec3::NEG_Y,
-                side: WheelSide::Right,
-            },
-            ExternalForce::default(),
-            ImpulseJoint::new(car_body, right_wheel_joint),
-        ))
-        .id();
-
-    // // Connect left wheel
-    // commands.spawn(
-    //     RevoluteJoint::new(car_body, left_wheel)
-    //         .with_aligned_axis(Vector::Y)
-    //         .with_local_anchor_1(Vector::Y * 1.0 + Vector::X * -0.5),
-    // );
-
-    // // Connect right wheel
-    // commands.spawn(
-    //     RevoluteJoint::new(car_body, right_wheel)
-    //         .with_aligned_axis(Vector::Y)
-    //         .with_local_anchor_1(Vector::Y * -1.0 + Vector::X * -0.5),
-    // );
+    // let right_wheel_joint = RevoluteJointBuilder::new(Vec3::Y)
+    //     .local_anchor1(Vec3::new(wheel_joints_x, -0.5, 0.0))
+    //     .local_anchor2(Vec3::new(0.0, 0.5, 0.0));
+    // let _right_wheel = commands
+    //     .spawn((
+    //         Collider::cylinder(0.5, 0.5),
+    //         Transform::from_xyz(wheel_joints_x, -1.0, 0.0),
+    //         GlobalTransform::default(),
+    //         RigidBody::Dynamic,
+    //         Friction {
+    //             coefficient: 0.95,
+    //             combine_rule: CoefficientCombineRule::Max,
+    //         },
+    //         ColliderMassProperties::Density(1.0),
+    //         Wheel {
+    //             axle: Vec3::NEG_Y,
+    //             side: WheelSide::Right,
+    //         },
+    //         ExternalForce::default(),
+    //         ImpulseJoint::new(body, right_wheel_joint),
+    //     ))
+    //     .id();
 }
 
 fn setup_track(commands: Commands, track: Res<Track>) {
@@ -651,12 +715,12 @@ fn setup_ui(mut commands: Commands) {
             },
             ..Default::default()
         },
-        Transform::from_translation(Vec3::Z * 10.0).looking_at(
+        Transform::from_translation(Vec3::Z * 1.0).looking_at(
             Vec3::Y,
             Vec3 {
                 x: 0.0,
-                y: 5.0,
-                z: 10.0,
+                y: 0.5,
+                z: 1.0,
             },
         ),
     ));
