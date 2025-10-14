@@ -1,6 +1,7 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
+use bevy::math::VectorSpace;
 use bevy::prelude::*;
 use bevy::text::cosmic_text::Angle;
 use bevy_editor_cam::DefaultEditorCamPlugins;
@@ -399,8 +400,8 @@ fn handle_motors_input(
         0.0
     };
 
-    const FORWARD_TORQUE: f32 = 0.01;
-    const SIDE_TORQUE: f32 = 0.01;
+    const FORWARD_TORQUE: f32 = 0.001;
+    const SIDE_TORQUE: f32 = 0.001;
 
     torque.left_torque = forward * FORWARD_TORQUE + side * SIDE_TORQUE;
     torque.right_torque = forward * FORWARD_TORQUE - side * SIDE_TORQUE;
@@ -543,7 +544,7 @@ fn main() {
 //     pub front_sensors_height: f32,
 // }
 
-const BOT_WHEEL_WIDTH: f32 = 0.5;
+const BOT_WHEEL_WIDTH: f32 = 0.05;
 const BOT_BODY_LENGHT_MIN: f32 = 0.04;
 const BOT_BODY_LENGHT_PERCENT_OF_TOTAL: f32 = 0.6;
 const BOT_BODY_WIDTH: f32 = 0.09;
@@ -575,7 +576,7 @@ fn setup_bot(mut commands: Commands) {
     let body_world = Vec3::new(
         0.0,
         (length_front - length_back) / 2.0,
-        clearing_back + (BOT_BODY_HEIGHT * 0.5),
+        clearing_back + (BOT_BODY_HEIGHT * 0.5) + BOT_BUMPER_DIAMETER,
     );
 
     // Static body with motors
@@ -626,6 +627,41 @@ fn setup_bot(mut commands: Commands) {
                 body,
                 FixedJointBuilder::new()
                     .local_anchor1(bumper_world - body_world) // parent's local anchor
+                    .local_anchor2(Vec3::ZERO),
+            ),
+        ));
+    }
+
+    // Wheels
+    for side in [WheelSide::Left, WheelSide::Right] {
+        let wheel_world = Vec3::new(
+            (width_axle + BOT_WHEEL_WIDTH) / 2.0 * side.sign(),
+            0.0,
+            wheel_diameter / 2.0 + BOT_BODY_HEIGHT,
+        );
+
+        commands.spawn((
+            Collider::compound(vec![(
+                Vec3::ZERO,
+                Quat::from_rotation_z(FRAC_PI_2),
+                Collider::cylinder(BOT_WHEEL_WIDTH / 2.0, wheel_diameter / 2.0),
+            )]),
+            Transform::from_xyz(wheel_world.x, wheel_world.y, wheel_world.z),
+            RigidBody::Dynamic,
+            Friction {
+                coefficient: 0.95,
+                combine_rule: CoefficientCombineRule::Max,
+            },
+            ColliderMassProperties::Density(1.0),
+            Wheel {
+                axle: Vec3::X,
+                side,
+            },
+            ExternalForce::default(),
+            ImpulseJoint::new(
+                body,
+                RevoluteJointBuilder::new(Vec3::X)
+                    .local_anchor1(wheel_world - body_world) // parent's local anchor
                     .local_anchor2(Vec3::ZERO),
             ),
         ));
