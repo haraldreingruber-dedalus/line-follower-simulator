@@ -17,6 +17,37 @@ const TRACK_TIPS_LENGTH: f32 = 0.5;
 const TRACK_Z_OFFSET: f32 = -TRACK_HALF_HEIGHT - FLOOR_HEIGHT;
 const TRACK_CIRCLE_SEGMENTS_PER_PI: usize = 40;
 
+// Error function (erf) approximation using a numerical method
+const fn erf(x: f32) -> f32 {
+    let t = 1.0 / (1.0 + 0.5 * x);
+    let tau = t
+        * (-x * x
+            + 1.26551223
+            + t * (1.00002368
+                + t * (0.37409196
+                    + t * (0.09678418
+                        + t * (-0.18628806
+                            + t * (0.27886807
+                                + t * (-1.13520398
+                                    + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+
+    1.0 - tau
+}
+
+// Reflection function (R(x)) using Gaussian approximation for the line reflection
+fn line_reflection(x: f32) -> f32 {
+    const LINE_SIZE: f32 = 0.02; // Line width in meters (20mm = 0.02m)
+    let sigma: f32 = 5.0; // Standard deviation for Gaussian function (can be adjusted)
+
+    let line_width_mm = LINE_SIZE * 1000.0; // Convert LINE_SIZE to millimeters
+
+    let a = (line_width_mm / 2.0 - x) / (sigma * (2.0f32).sqrt());
+    let b = (line_width_mm / 2.0 + x) / (sigma * (2.0f32).sqrt());
+
+    let overlap = 0.5 * (erf(a) + erf(b));
+    100.0 * (1.0 - overlap)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Left,
@@ -490,11 +521,10 @@ fn compute_sensor_readings(
             let point: Vec3 = intersection.point.into();
             let (track_segment, transform) = track_segments_query.get(entity).unwrap();
             println!(
-                "Ray from {:.2} hit {} at {:.2}, angle {:.2}°",
+                "Ray from {:.2} hit {} at {:.2}",
                 origin,
                 entity,
                 point_to_new_origin(point, transform),
-                transform.rotation().to_euler(EulerRot::ZYX).0.to_degrees()
             );
         } else {
             println!("Ray from {:.2} hit nothing", origin);
