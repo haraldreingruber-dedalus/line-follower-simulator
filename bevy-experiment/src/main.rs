@@ -562,10 +562,10 @@ fn apply_motors_pwm(
 
         body_torque += motors_axle.axle(wheel.side) * torque;
 
-        println!(
-            "Wheel {:?} torque {:.10} vel {:.2}",
-            wheel.side, torque, ang_vel
-        );
+        // println!(
+        //     "Wheel {:?} torque {:.10} vel {:.2}",
+        //     wheel.side, torque, ang_vel
+        // );
     }
 
     motors_ext_force.torque = body_torque;
@@ -704,12 +704,12 @@ fn main() {
                 .chain()
                 .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
         )
-        // .add_systems(
-        //     RunFixedMainLoop,
-        //     (compute_sensor_readings, compute_bot_position)
-        //         .chain()
-        //         .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
-        // )
+        .add_systems(
+            RunFixedMainLoop,
+            (compute_sensor_readings, compute_bot_position)
+                .chain()
+                .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+        )
         // Add systems for toggling the diagnostics UI and pausing and stepping the simulation.
         .add_systems(Startup, (setup_bot, setup_track, setup_ui).chain())
         .run();
