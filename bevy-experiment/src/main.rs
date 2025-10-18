@@ -526,10 +526,31 @@ fn pwm_to_torque(
 
 fn apply_motors_pwm(
     pwm: Res<MotorsPwm>,
-    mut wheels_query: Query<(&Wheel, &Transform, &Velocity, &mut ExternalForce)>,
-    // mut motors_query: Query<(&Motors, &Transform, &mut ExternalForce)>,
+    mut wheels_query: Query<(&Wheel, &Transform, &Velocity, &mut ExternalForce), Without<Motors>>,
+    mut motors_query: Query<(&Motors, &Transform, &mut ExternalForce), Without<Wheel>>,
 ) {
-    // let mut body_torque: f32 = 0.0;
+    let mut body_torque = Vec3::ZERO;
+
+    struct MotorsAxle {
+        left: Vec3,
+        right: Vec3,
+    }
+    impl MotorsAxle {
+        fn new(left: Vec3, right: Vec3) -> Self {
+            Self { left, right }
+        }
+        fn axle(&self, side: WheelSide) -> Vec3 {
+            match side {
+                WheelSide::Left => self.left,
+                WheelSide::Right => self.right,
+            }
+        }
+    }
+    let (motors, motors_transform, mut motors_ext_force) = motors_query.single_mut().unwrap();
+    let motors_axle = MotorsAxle::new(
+        motors_transform.rotation * motors.left_axle,
+        motors_transform.rotation * motors.right_axle,
+    );
 
     for (wheel, transform, velocity, mut ext_impulse) in &mut wheels_query {
         let ang_vel = -velocity.angvel.dot(transform.rotation * wheel.axle.abs()); // rad/s
@@ -539,38 +560,16 @@ fn apply_motors_pwm(
         let wheel_axle = transform.rotation * wheel.axle.abs();
         ext_impulse.torque = -wheel_axle * torque;
 
-        // body_torque += torque * wheel.side.sign();
+        body_torque += motors_axle.axle(wheel.side) * torque;
 
         println!(
             "Wheel {:?} torque {:.10} vel {:.2}",
             wheel.side, torque, ang_vel
         );
     }
+
+    motors_ext_force.torque = body_torque;
 }
-
-// fn set_wheel_torque(
-//     torque: Res<MotorsTorque>,
-//     mut query: Query<(&Wheel, &Transform, &mut ExternalForce)>,
-// ) {
-//     for (wheel, transform, mut ext_impulse) in &mut query {
-//         let torque = torque.torque(wheel.side) * wheel.side.sign();
-//         let wheel_axle = transform.rotation * wheel.axle;
-//         ext_impulse.torque = wheel_axle * torque;
-//     }
-// }
-
-// fn set_motors_torque(
-//     torque: Res<MotorsTorque>,
-//     mut query: Query<(&Motors, &Transform, &mut ExternalForce)>,
-// ) {
-//     for (motors, transform, mut ext_torque) in &mut query {
-//         let left_torque = torque.left_torque * WheelSide::Left.sign() * -1.0;
-//         let left_axle = transform.rotation * motors.left_axle;
-//         let right_torque = torque.right_torque * WheelSide::Right.sign() * -1.0;
-//         let right_axle = transform.rotation * motors.right_axle;
-//         ext_torque.torque = (left_axle * left_torque) + (right_axle * right_torque);
-//     }
-// }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum BotPosition {
