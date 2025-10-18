@@ -421,6 +421,8 @@ impl WheelSide {
 struct Motors {
     left_axle: Vec3,
     right_axle: Vec3,
+    gear_ratio_num: u32,
+    gear_ratio_den: u32,
 }
 
 #[derive(Component)]
@@ -482,6 +484,8 @@ fn handle_motors_input(keyboard_input: Res<ButtonInput<KeyCode>>, mut pwm: ResMu
 fn pwm_to_torque(
     pwm: f32,     // -1.0 .. 1.0
     ang_vel: f32, // rad/s
+    gear_ratio_num: u32,
+    gear_ratio_den: u32,
 ) -> f32 {
     // Model a simple DC motor: torque is proportional to PWM (drive) and
     // decreases linearly with angular velocity, reaching zero at the motor
@@ -492,36 +496,51 @@ fn pwm_to_torque(
     // - no-load speed: ~750 RPM -> 750/60*2*pi = ~78.54 rad/s
     // - stall torque: small toy motor ~0.15..0.25 N·m; choose conservative 0.18
     // These are rough; tune to your robot size.
-    const NO_LOAD_RPM: f32 = 750.0;
+    const NO_LOAD_RPM: f32 = 2000.0;
     const NO_LOAD_OMEGA: f32 = NO_LOAD_RPM / 60.0 * std::f32::consts::TAU; // rad/s
     const STALL_TORQUE: f32 = 0.000005; // N·m at PWM = 1.0 and zero speed
 
     // Saturate PWM
     let pwm = pwm.clamp(-1.0, 1.0);
 
+    // Gear ratio as floating point (motor rotations per wheel rotation).
+    let gear_ratio = if gear_ratio_den == 0 {
+        1.0
+    } else {
+        gear_ratio_num as f32 / gear_ratio_den as f32
+    };
+
+    // Motor angular velocity = wheel angular velocity * gear_ratio
+    let motor_omega = ang_vel * gear_ratio.abs();
+
     // Motor torque magnitude scales with |pwm|
     let drive = pwm.abs();
 
-    // Effective no-load speed for this drive (assume linear scaling with drive)
-    let omega_noload = NO_LOAD_OMEGA * drive;
+    // Effective motor no-load speed for this drive (assume linear scaling with drive)
+    let omega_noload_motor = NO_LOAD_OMEGA * drive;
 
     // If drive is zero, no torque.
     if drive <= 0.0 {
         return 0.0;
     }
 
-    // Torque falls linearly with speed: T = T_stall * (1 - |omega|/omega_noload)
-    // Clamp denominator to avoid div-by-zero when omega_noload == 0 (drive tiny)
-    let torque_ratio = if omega_noload > 1e-6 {
-        (1.0 - ang_vel.abs() / omega_noload).max(0.0)
+    // Motor torque falls linearly with motor speed: Tm = T_stall * (1 - |omega_m|/omega_noload_m)
+    let torque_ratio = if omega_noload_motor > 1e-6 {
+        (1.0 - motor_omega.abs() / omega_noload_motor).max(0.0)
     } else {
         0.0
     };
 
-    let torque_mag = STALL_TORQUE * drive * torque_ratio;
+    let motor_torque = STALL_TORQUE * drive * torque_ratio;
 
-    // Direction: pwm sign determines torque direction
-    if pwm >= 0.0 { torque_mag } else { -torque_mag }
+    // Wheel torque = motor torque * gear_ratio (torque amplified by gearbox)
+    let wheel_torque = motor_torque * gear_ratio.abs();
+
+    if pwm >= 0.0 {
+        wheel_torque
+    } else {
+        -wheel_torque
+    }
 }
 
 fn apply_motors_pwm(
@@ -555,7 +574,12 @@ fn apply_motors_pwm(
     for (wheel, transform, velocity, mut ext_impulse) in &mut wheels_query {
         let ang_vel = -velocity.angvel.dot(transform.rotation * wheel.axle.abs()); // rad/s
         let pwm_value = pwm.pwm(wheel.side);
-        let torque = pwm_to_torque(pwm_value, ang_vel);
+        let torque = pwm_to_torque(
+            pwm_value,
+            ang_vel,
+            motors.gear_ratio_num,
+            motors.gear_ratio_den,
+        );
 
         let wheel_axle = transform.rotation * wheel.axle.abs();
         ext_impulse.torque = -wheel_axle * torque;
@@ -801,6 +825,8 @@ fn setup_bot(mut commands: Commands) {
             Motors {
                 left_axle: Vec3::X,
                 right_axle: Vec3::NEG_X,
+                gear_ratio_num,
+                gear_ratio_den,
             },
             BotPositionDetector {},
             ExternalForce::default(),
