@@ -2,7 +2,7 @@
 mod bindings;
 mod value_ext;
 
-use bindings::devices::{DeviceOperation, device_operation_blocking, set_motors_power};
+use bindings::devices::{DeviceOperation, device_operation_blocking};
 use bindings::diagnostics::write_line;
 use bindings::exports::robot::{Color, Configuration, Guest};
 use value_ext::DeviceValueExt;
