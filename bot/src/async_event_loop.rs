@@ -4,7 +4,8 @@ use std::{
 };
 
 use crate::line_follower_robot::devices::{
-    DeviceValue, FutureHandle, PollError, PollOperationStatus, device_poll, poll_loop,
+    DeviceValue, FutureHandle, PollError, PollOperationStatus, device_poll, forget_handle,
+    poll_loop,
 };
 
 pub type PinBoxed<T> = core::pin::Pin<Box<T>>;
@@ -71,5 +72,11 @@ impl Future for FutureValue {
             Ok(PollOperationStatus::Pending) => Poll::Pending,
             Err(error) => Poll::Ready(Err(error)),
         }
+    }
+}
+
+impl Drop for FutureValue {
+    fn drop(&mut self) {
+        forget_handle(self.handle);
     }
 }
