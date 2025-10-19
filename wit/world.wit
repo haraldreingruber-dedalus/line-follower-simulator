@@ -3,20 +3,6 @@ package component:line-follower-robot;
 world line-follower-robot {
     // Interface for robot devices (provided by simulation host)
     import devices: interface {
-        /// Errors that can happen when polling devices asynchronously
-        enum poll-error {
-            /// The provided handle is not valid
-            /// (this handle has never been created)
-            invalid-handle,
-            /// The provided handle has already been consumed
-            /// (the detection of this case is best-effort,
-            /// otherwise the handle is reported as expired)
-            consumed-handle,
-            /// The provided handle is too old and its value has been lost
-            /// (more recent values are available and replace the old one)
-            expired-handle,
-        }
-
         /// Time represented as microseconds
         type time-us = u32;
 
@@ -96,7 +82,7 @@ world line-follower-robot {
         device-operation-async: func(operation: device-operation) -> future-handle;
 
         /// Poll the status of an async operation (returns immediately)
-        device-poll: func(handle: future-handle) -> result<poll-operation-status, poll-error>;
+        device-poll: func(handle: future-handle) -> poll-operation-status;
 
         /// Signal future values poll loop start and end to the simulation host
         poll-loop: func(start: bool);

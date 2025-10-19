@@ -5,7 +5,7 @@ pub mod value_ext;
 
 use async_event_loop::{FutureHandleExt, pin_boxed};
 use line_follower_robot::devices::{
-    DeviceOperation, PollError, device_operation_async, device_operation_blocking, poll_loop,
+    DeviceOperation, device_operation_async, device_operation_blocking, poll_loop,
 };
 use line_follower_robot::diagnostics::write_line;
 use line_follower_robot::exports::robot::{Color, Configuration, Guest};
@@ -37,7 +37,7 @@ impl Guest for Component {
     }
 }
 
-pub async fn simple_async_loop() -> Result<(), PollError> {
+pub async fn simple_async_run() {
     for i in 1..1000 {
         let time = device_operation_blocking(DeviceOperation::GetTime);
 
@@ -46,7 +46,6 @@ pub async fn simple_async_loop() -> Result<(), PollError> {
             device_operation_async(DeviceOperation::ReadAccel).into_future(),
         )
         .await;
-        let (gyro, accel) = (gyro?, accel?);
         write_line(&format!(
             "log: {} time {} gyro {} {} {} {} accel {} {} {} {}",
             i,
@@ -62,14 +61,7 @@ pub async fn simple_async_loop() -> Result<(), PollError> {
         ));
         device_operation_async(DeviceOperation::SleepFor(1_000_000))
             .into_future()
-            .await?;
-    }
-    Ok(())
-}
-
-pub async fn simple_async_run() {
-    if let Err(err) = simple_async_loop().await {
-        println!("Error: {}", err);
+            .await;
     }
 }
 

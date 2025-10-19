@@ -12,8 +12,7 @@ use execution_data::{
 use crate::bindings::{
     self,
     devices::{
-        DeviceOperation, DeviceValue, FutureHandle, MotorPower, PollError, PollOperationStatus,
-        TimeUs,
+        DeviceOperation, DeviceValue, FutureHandle, MotorPower, PollOperationStatus, TimeUs,
     },
     diagnostics::CsvColumn,
 };
@@ -810,10 +809,10 @@ impl<S: SimulationStepper> bindings::devices::Host for BotHost<S> {
         &mut self,
         current_fuel: u64,
         handle: FutureHandle,
-    ) -> wasmtime::Result<Result<PollOperationStatus, PollError>> {
+    ) -> wasmtime::Result<PollOperationStatus> {
         let current_time = self.setup_current_time(current_fuel)?;
         self.step_until_time(current_time);
-        let r = match self.futures_by_id.get_mut(&handle.id) {
+        match self.futures_by_id.get_mut(&handle.id) {
             Some(f) => match f.value {
                 FutureValueStatus::Pending => {
                     self.first_wakeup_point
@@ -825,11 +824,14 @@ impl<S: SimulationStepper> bindings::devices::Host for BotHost<S> {
                     f.value = FutureValueStatus::Consumed;
                     Ok(PollOperationStatus::Ready(device_value_raw.into()))
                 }
-                FutureValueStatus::Consumed => Err(PollError::ConsumedHandle),
+                FutureValueStatus::Consumed => {
+                    return Err(wasmtime::Error::msg("Future already consumed"));
+                }
             },
-            None => Err(PollError::InvalidHandle),
-        };
-        Ok(r)
+            None => {
+                return Err(wasmtime::Error::msg("Future handle not found"));
+            }
+        }
     }
 
     #[doc = " Signal future values poll loop start and end to the simulation host"]

@@ -4,8 +4,7 @@ use std::{
 };
 
 use crate::line_follower_robot::devices::{
-    DeviceValue, FutureHandle, PollError, PollOperationStatus, device_poll, forget_handle,
-    poll_loop,
+    DeviceValue, FutureHandle, PollOperationStatus, device_poll, forget_handle, poll_loop,
 };
 
 pub type PinBoxed<T> = core::pin::Pin<Box<T>>;
@@ -64,13 +63,12 @@ impl FutureHandleExt for FutureHandle {
 }
 
 impl Future for FutureValue {
-    type Output = Result<DeviceValue, PollError>;
+    type Output = DeviceValue;
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match device_poll(self.handle) {
-            Ok(PollOperationStatus::Ready(value)) => Poll::Ready(Ok(value)),
-            Ok(PollOperationStatus::Pending) => Poll::Pending,
-            Err(error) => Poll::Ready(Err(error)),
+            PollOperationStatus::Ready(value) => Poll::Ready(value),
+            PollOperationStatus::Pending => Poll::Pending,
         }
     }
 }

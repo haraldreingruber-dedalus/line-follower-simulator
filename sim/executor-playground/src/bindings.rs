@@ -195,60 +195,6 @@ pub mod devices {
     use wasmtime::component::__internal::{Box, anyhow};
     use wasmtime::component::{ComponentType, Lift, Lower};
 
-    /// Errors that can happen when polling devices asynchronously
-    #[derive(Debug, ComponentType, Lower, Lift, Clone, Copy, PartialEq, Eq)]
-    #[component(enum)]
-    #[repr(u8)]
-    pub enum PollError {
-        /// The provided handle is not valid
-        /// (this handle has never been created)
-        #[component(name = "invalid-handle")]
-        InvalidHandle,
-        /// The provided handle has already been consumed
-        /// (the detection of this case is best-effort,
-        /// otherwise the handle is reported as expired)
-        #[component(name = "consumed-handle")]
-        ConsumedHandle,
-        /// The provided handle is too old and its value has been lost
-        /// (more recent values are available and replace the old one)
-        #[component(name = "expired-handle")]
-        ExpiredHandle,
-    }
-    const _: () = {
-        #[doc(hidden)]
-        #[repr(C)]
-        #[derive(Clone, Copy)]
-        pub struct LowerPollError {
-            tag: wasmtime::ValRaw,
-        }
-    };
-    impl PollError {
-        pub fn name(&self) -> &'static str {
-            match self {
-                PollError::InvalidHandle => "invalid-handle",
-                PollError::ConsumedHandle => "consumed-handle",
-                PollError::ExpiredHandle => "expired-handle",
-            }
-        }
-    }
-    impl core::fmt::Display for PollError {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.write_fmt(format_args!("{0} (error {1})", self.name(), *self as i32))
-        }
-    }
-    impl core::error::Error for PollError {}
-    const _: () = {
-        if !(1 == <PollError as wasmtime::component::ComponentType>::SIZE32) {
-            panic!(
-                "assertion failed: 1 == <PollError as wasmtime::component::ComponentType>::SIZE32",
-            )
-        }
-        if !(1 == <PollError as wasmtime::component::ComponentType>::ALIGN32) {
-            panic!(
-                "assertion failed: 1 == <PollError as wasmtime::component::ComponentType>::ALIGN32",
-            )
-        }
-    };
     /// Time represented as microseconds
     pub type TimeUs = u32;
     const _: () = {
@@ -517,7 +463,7 @@ pub mod devices {
             &mut self,
             current_fuel: u64,
             handle: FutureHandle,
-        ) -> wasmtime::Result<Result<PollOperationStatus, PollError>>;
+        ) -> wasmtime::Result<PollOperationStatus>;
         /// Signal future values poll loop start and end to the simulation host
         fn poll_loop(&mut self, current_fuel: u64, start: bool) -> wasmtime::Result<()>;
         /// Instructs the simulation to forget the handle to an async operation
@@ -553,7 +499,7 @@ pub mod devices {
             &mut self,
             current_fuel: u64,
             handle: FutureHandle,
-        ) -> wasmtime::Result<Result<PollOperationStatus, PollError>> {
+        ) -> wasmtime::Result<PollOperationStatus> {
             Host::device_poll(*self, current_fuel, handle)
         }
         /// Signal future values poll loop start and end to the simulation host
