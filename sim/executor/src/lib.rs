@@ -1,14 +1,28 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use wasm_bindings::devices::TimeUs;
+pub use wasmtime;
+pub mod mock_stepper;
+pub mod wasm_bindings;
+pub mod wasm_executor;
+pub mod wasm_host;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+const TOTAL_SIMULATION_TIME_US: TimeUs = 60_000_000;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn test_run(input: String, output: String, logs: bool) -> wasmtime::Result<()> {
+    // Load the component from disk
+    let wasm_bytes = std::fs::read(&input)?;
+
+    // Get configuration
+    let cfg = wasm_executor::get_robot_configuration(&wasm_bytes)?;
+    println!("Robot configuration: {:#?}", &cfg);
+
+    // Run robot logic
+    wasm_executor::run_robot_simulation(
+        &wasm_bytes,
+        cfg,
+        TOTAL_SIMULATION_TIME_US,
+        Some(output.into()),
+        logs,
+    )?;
+
+    Ok(())
 }

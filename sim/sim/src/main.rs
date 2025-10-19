@@ -1,4 +1,5 @@
 use clap::{self, Parser, Subcommand};
+use executor::test_run;
 
 #[derive(Parser)]
 #[clap(name = "sim")]
@@ -39,7 +40,7 @@ enum Command {
     Serve,
 }
 
-fn main() {
+fn main() -> executor::wasmtime::Result<()> {
     let args = Args::parse();
 
     match args.cmd {
@@ -52,6 +53,7 @@ fn main() {
                 "running robot \"{}\" output at path \"{}\" (write logs: {})...",
                 input, output, logs
             );
+            test_run(input, output, logs)?;
         }
         Command::Test {
             input,
@@ -67,4 +69,6 @@ fn main() {
             println!("Starting server...");
         }
     }
+
+    Ok(())
 }
