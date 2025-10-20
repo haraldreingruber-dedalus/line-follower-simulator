@@ -2,7 +2,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::motors::{Motors, Wheel, WheelSide};
-use crate::sensors::{BotPositionDetector, LineSensor};
+use crate::sensors::bot_position::BotPositionDetector;
+use crate::sensors::line_sensors::LineSensor;
 
 const BOT_COLLISION_GROUP: Group = Group::GROUP_1;
 
