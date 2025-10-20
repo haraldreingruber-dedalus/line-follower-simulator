@@ -1,4 +1,3 @@
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 use bevy_editor_cam::DefaultEditorCamPlugins;
 use bevy_rapier3d::prelude::*;
@@ -34,7 +33,6 @@ fn main() {
         ),
         DefaultEditorCamPlugins,
         RapierDebugRenderPlugin::default(),
-        FrameTimeDiagnosticsPlugin::default(),
     ))
     .insert_resource(Time::<Fixed>::from_hz(10000.0));
 
