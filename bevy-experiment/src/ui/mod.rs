@@ -2,7 +2,8 @@ use bevy_editor_cam::prelude::{EditorCam, OrbitConstraint};
 
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_egui::{
-    EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext, egui,
+    EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext,
+    egui::{self, Color32},
 };
 
 use crate::motors::MotorsPwm;
@@ -73,44 +74,29 @@ pub fn add_ui_setup(app: &mut App) {
 fn gui_example(mut contexts: EguiContexts) -> Result {
     let ctx = contexts.ctx_mut()?;
 
-    egui::SidePanel::left("left_panel")
-        .resizable(true)
+    ctx.style_mut(|style| style.visuals.panel_fill = Color32::from_rgba_unmultiplied(0, 0, 0, 0));
+
+    egui::TopBottomPanel::bottom("bottom_panel")
+        .resizable(false)
+        .show_separator_line(false)
         .show(ctx, |ui| {
-            ui.label("Left resizeable panel");
+            ui.label("Bottom fixed panel");
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-        })
-        .response
-        .rect
-        .width(); // height is ignored, as the panel has a hight of 100% of the screen
+        });
+
+    egui::SidePanel::left("left_panel")
+        .resizable(false)
+        .show_separator_line(false)
+        .show(ctx, |ui| {
+            ui.label("Left fixed panel");
+        });
 
     egui::SidePanel::right("right_panel")
-        .resizable(true)
+        .resizable(false)
+        .show_separator_line(false)
         .show(ctx, |ui| {
-            ui.label("Right resizeable panel");
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-        })
-        .response
-        .rect
-        .width(); // height is ignored, as the panel has a height of 100% of the screen
-
-    egui::TopBottomPanel::top("top_panel")
-        .resizable(true)
-        .show(ctx, |ui| {
-            ui.label("Top resizeable panel");
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-        })
-        .response
-        .rect
-        .height(); // width is ignored, as the panel has a width of 100% of the screen
-    egui::TopBottomPanel::bottom("bottom_panel")
-        .resizable(true)
-        .show(ctx, |ui| {
-            ui.label("Bottom resizeable panel");
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-        })
-        .response
-        .rect
-        .height(); // width is ignored, as the panel has a width of 100% of the screen
+            ui.label("Right fixed panel");
+        });
 
     Ok(())
 }
