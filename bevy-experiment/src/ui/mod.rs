@@ -1,5 +1,9 @@
-use bevy::prelude::*;
 use bevy_editor_cam::prelude::{EditorCam, OrbitConstraint};
+
+use bevy::{prelude::*, render::view::RenderLayers};
+use bevy_egui::{
+    EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, PrimaryEguiContext, egui,
+};
 
 use crate::motors::MotorsPwm;
 
@@ -56,6 +60,75 @@ fn setup_ui(mut commands: Commands) {
 pub fn add_ui_setup(app: &mut App) {
     app.add_systems(Startup, setup_ui)
         .add_systems(Update, handle_motors_input)
+        // egui support
+        .add_plugins(EguiPlugin::default())
+        // gui setup
+        .add_systems(Startup, setup_gui)
+        // gui implementation
+        .add_systems(EguiPrimaryContextPass, gui_example)
         // Background color
         .insert_resource(ClearColor(Color::srgb(0.05, 0.05, 0.1)));
+}
+
+fn gui_example(mut contexts: EguiContexts) -> Result {
+    let ctx = contexts.ctx_mut()?;
+
+    egui::SidePanel::left("left_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Left resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .width(); // height is ignored, as the panel has a hight of 100% of the screen
+
+    egui::SidePanel::right("right_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Right resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .width(); // height is ignored, as the panel has a height of 100% of the screen
+
+    egui::TopBottomPanel::top("top_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Top resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .height(); // width is ignored, as the panel has a width of 100% of the screen
+    egui::TopBottomPanel::bottom("bottom_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Bottom resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .height(); // width is ignored, as the panel has a width of 100% of the screen
+
+    Ok(())
+}
+
+fn setup_gui(mut commands: Commands, mut egui_global_settings: ResMut<EguiGlobalSettings>) {
+    // Disable the automatic creation of a primary context to set it up manually for the camera we need.
+    egui_global_settings.auto_create_primary_context = false;
+
+    // Egui camera.
+    commands.spawn((
+        // The `PrimaryEguiContext` component requires everything needed to render a primary context.
+        PrimaryEguiContext,
+        Camera2d,
+        // Setting RenderLayers to none makes sure we won't render anything apart from the UI.
+        RenderLayers::none(),
+        Camera {
+            order: 1,
+            ..default()
+        },
+    ));
 }
