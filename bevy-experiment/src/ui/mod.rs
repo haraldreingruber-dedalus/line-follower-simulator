@@ -71,7 +71,11 @@ pub fn add_ui_setup(app: &mut App) {
         .insert_resource(ClearColor(Color::srgb(0.05, 0.05, 0.1)));
 }
 
-fn gui_example(mut contexts: EguiContexts, mut gui_state: ResMut<GuiState>) -> Result {
+fn gui_example(
+    mut contexts: EguiContexts,
+    mut gui_state: ResMut<GuiState>,
+    time: Res<Time>,
+) -> Result {
     let ctx = contexts.ctx_mut()?;
 
     ctx.style_mut(|style| style.visuals.panel_fill = Color32::from_rgba_unmultiplied(0, 0, 0, 0));
@@ -95,16 +99,25 @@ fn gui_example(mut contexts: EguiContexts, mut gui_state: ResMut<GuiState>) -> R
         .resizable(false)
         .show_separator_line(false)
         .show(ctx, |ui| {
-            ui.vertical(|ui| {
+            ui.vertical_centered(|ui| {
                 ui.label("Robots");
                 ui.separator();
-                if bot_name(ui, "Test BOT", Color32::RED, Color32::BLUE) {
-                    gui_state.as_mut().bot_with_pending_remove = Some(BotName {
-                        name: "Test BOT".to_string(),
-                        c1: Color32::RED,
-                        c2: Color32::BLUE,
-                    })
-                }
+                ui.horizontal(|ui| {
+                    if bot_status(
+                        ui,
+                        "Test BOT",
+                        Color32::RED,
+                        Color32::BLUE,
+                        time.elapsed_secs(),
+                        BotStatus::Running,
+                    ) {
+                        gui_state.as_mut().bot_with_pending_remove = Some(BotName {
+                            name: "Test BOT".to_string(),
+                            c1: Color32::RED,
+                            c2: Color32::BLUE,
+                        })
+                    }
+                });
             });
 
             if ask_bot_remove(ui, gui_state.as_mut()) == Some(true) {
@@ -155,6 +168,46 @@ fn bot_name(ui: &mut Ui, name: &str, c1: Color32, c2: Color32) -> bool {
         })
         .inner
         .clicked()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BotStatus {
+    Running,
+    Ended,
+    Out,
+}
+
+impl BotStatus {
+    pub fn color(&self) -> Color32 {
+        match self {
+            BotStatus::Running => Color32::WHITE,
+            BotStatus::Ended => Color32::GREEN,
+            BotStatus::Out => Color32::RED,
+        }
+    }
+}
+
+fn bot_status(
+    ui: &mut Ui,
+    name: &str,
+    c1: Color32,
+    c2: Color32,
+    time_sec: f32,
+    status: BotStatus,
+) -> bool {
+    let mut response = false;
+    ui.horizontal(|ui| {
+        response = bot_name(ui, name, c1, c2);
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(
+                egui::RichText::new(format!("{:.2}", time_sec))
+                    .color(status.color())
+                    .strong(),
+            );
+        });
+    });
+    response
 }
 
 struct BotName {
