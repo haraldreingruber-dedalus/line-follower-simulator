@@ -626,7 +626,7 @@ impl DeviceOperationExt for DeviceOperation {
             | DeviceOperation::ReadAccel
             | DeviceOperation::ReadGyro
             | DeviceOperation::ReadImuFusedData => {
-                let step_time = stepper.get_step_us();
+                let step_time = stepper.step_us();
                 let stray_time = current_time % step_time;
                 let trigger_time = if stray_time == 0 {
                     current_time

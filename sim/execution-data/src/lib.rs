@@ -117,13 +117,8 @@ pub struct SensorsData {
 }
 
 pub trait SimulationStepper {
-    /// Time per step in microseconds.
-    const STEP_US: u32;
-
     /// Get time per step in microseconds.
-    fn get_step_us(&self) -> u32 {
-        Self::STEP_US
-    }
+    fn step_us(&self) -> u32;
 
     /// Perform a single simulation step.
     fn step(&mut self);
@@ -133,15 +128,15 @@ pub trait SimulationStepper {
 
     /// Get the time that the simulation will reach at the next step.
     fn get_time_us_at_next_step(&self) -> u32 {
-        self.get_time_us() + Self::STEP_US
+        self.get_time_us() + self.step_us()
     }
 
     fn get_time_us_at_next_step_after(&self, time_us: u32) -> u32 {
-        let stray_time = time_us % Self::STEP_US;
+        let stray_time = time_us % self.step_us();
         if stray_time == 0 {
             time_us
         } else {
-            time_us + Self::STEP_US - stray_time
+            time_us + self.step_us() - stray_time
         }
     }
 
@@ -154,7 +149,7 @@ pub trait SimulationStepper {
 
     /// Get the time that the simulation will reach after the given number of steps.
     fn get_time_after_steps_us(&self, steps: usize) -> u32 {
-        self.get_time_us() + (steps as u32 * Self::STEP_US)
+        self.get_time_us() + (steps as u32 * self.step_us())
     }
 
     /// Get the simulated steps count.

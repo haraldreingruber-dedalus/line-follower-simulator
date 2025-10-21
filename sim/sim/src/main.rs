@@ -33,6 +33,9 @@ enum Command {
         /// Save robot logs
         #[clap(long, short)]
         logs: bool,
+        /// Simulation step period in us
+        #[clap(long, short, default_value = "500")]
+        period: u32,
     },
     /// Test a robot configuration
     Test {
@@ -58,13 +61,14 @@ fn main() -> executor::wasmtime::Result<()> {
             input,
             output,
             logs,
+            period,
         } => {
             println!(
                 "running robot \"{}\" output at path \"{}\" (write logs: {})...",
                 input, output, logs
             );
 
-            let (data, _cfg) = simulator_runner(input, output, logs)?;
+            let (data, _cfg) = simulator_runner(input, output, logs, period)?;
             println!("data has {} frames", data.steps.len());
         }
         Command::Test {

@@ -1,13 +1,15 @@
 use std::f32::consts::PI;
 
 pub struct MockStepper {
+    step_period_us: u32,
     current_step: usize,
     current_time_us: u32,
 }
 
 impl MockStepper {
-    pub fn new() -> Self {
+    pub fn new(step_period_us: u32) -> Self {
         Self {
+            step_period_us,
             current_step: 0,
             current_time_us: 0,
         }
@@ -19,11 +21,13 @@ impl MockStepper {
 }
 
 impl execution_data::SimulationStepper for MockStepper {
-    const STEP_US: u32 = 100;
+    fn step_us(&self) -> u32 {
+        self.step_period_us
+    }
 
     fn step(&mut self) {
         self.current_step += 1;
-        self.current_time_us += Self::STEP_US;
+        self.current_time_us += self.step_period_us;
     }
 
     fn get_time_us(&self) -> u32 {

@@ -14,7 +14,7 @@ pub fn get_robot_configuration(wasm_bytes: &[u8]) -> wasmtime::Result<Configurat
     let total_simulation_time: TimeUs = 1_000;
 
     // Create a mock stepper
-    let stepper = MockStepper::new();
+    let stepper = MockStepper::new(100);
 
     // Create engine and store
     let mut engine_config = wasmtime::Config::new();

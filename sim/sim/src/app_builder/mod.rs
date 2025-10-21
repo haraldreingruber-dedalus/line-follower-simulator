@@ -29,7 +29,8 @@ pub enum AppType {
     Visualizer,
 }
 
-pub fn create_app(app_type: AppType) -> App {
+pub fn create_app(app_type: AppType, step_period_us: u32) -> App {
+    let step_hz = 1_000_000.0 / (step_period_us as f64);
     let mut app = App::new();
 
     app.add_plugins((
@@ -44,7 +45,7 @@ pub fn create_app(app_type: AppType) -> App {
             },
         ),
     ))
-    .insert_resource(Time::<Fixed>::from_hz(10000.0));
+    .insert_resource(Time::<Fixed>::from_hz(step_hz));
 
     match app_type {
         AppType::Simulator(configuration) => {

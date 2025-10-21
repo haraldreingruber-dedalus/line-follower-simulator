@@ -39,7 +39,7 @@ pub fn add_sensors(app: &mut App) {
             compute_bot_position,
             compute_motor_angles_position,
             compute_imu_data,
-            print_sensors_data,
+            //print_sensors_data,
         )
             .chain()
             .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
