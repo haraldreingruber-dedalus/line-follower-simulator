@@ -162,6 +162,12 @@ fn gui_example(
 
     let (_, mut e_cam, mut ec_transform) = camera.single_mut()?;
 
+    // let ff = icons::ICON_FAST_FORWARD;
+    // let fr = icons::ICON_FAST_REWIND;
+    // let hh = icons::ICON_HELP;
+    // let ll = icons::ICON_UPLOAD;
+    // let lf = icons::ICON_UPLOAD_FILE;
+
     egui::TopBottomPanel::bottom("bottom_panel")
         .resizable(false)
         .default_height(gui_state.base_text_size * 1.8)
