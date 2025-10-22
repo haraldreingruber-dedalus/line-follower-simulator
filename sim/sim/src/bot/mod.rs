@@ -18,7 +18,12 @@ const BOT_BUMPER_WIDTH: f32 = BOT_BODY_WIDTH / 2.0;
 const BOT_BODY_WEIGHT: f32 = 0.1;
 const BOT_WHEEL_WEIGHT: f32 = 0.02;
 
-fn setup_bot(mut commands: Commands, config_wrapper: Res<BotConfigWrapper>) {
+fn setup_bot(
+    mut commands: Commands,
+    config_wrapper: Res<BotConfigWrapper>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
     let config = &config_wrapper.config;
 
     // Axle width from wheel to wheel (in mm, 100 to 200)
@@ -39,6 +44,10 @@ fn setup_bot(mut commands: Commands, config_wrapper: Res<BotConfigWrapper>) {
     let front_sensors_spacing: f32 = config.front_sensors_spacing / 1000.0;
     // Height of line sensors from the ground (in mm, from 1 to wheels radius)
     let front_sensors_height: f32 = config.front_sensors_height / 1000.0;
+
+    // Mesh
+    let cube_mesh = meshes.add(Cuboid::default());
+    let body_material = materials.add(Color::srgb(0.8, 0.2, 0.2));
 
     let body_world = Vec3::new(
         0.0,
@@ -99,6 +108,8 @@ fn setup_bot(mut commands: Commands, config_wrapper: Res<BotConfigWrapper>) {
             BotPositionDetector::default(),
             ExternalForce::default(),
             Velocity::zero(),
+            Mesh3d(cube_mesh.clone()),
+            MeshMaterial3d(body_material.clone()),
         ))
         .id();
 
