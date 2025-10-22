@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 
 use crate::{
-    motors::Wheel,
+    bot::motors::Wheel,
     utils::{SetBySide, Side},
 };
 use execution_data::{MotorAngles, SensorsData};

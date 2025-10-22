@@ -6,9 +6,9 @@ use bevy_rapier3d::rapier::prelude::IntegrationParameters;
 use executor::wasm_bindings::exports::robot::Configuration;
 
 use crate::bot::add_bot_setup;
+use crate::bot::motors::add_motors;
+use crate::bot::sensors::add_sensors;
 use crate::data::add_data;
-use crate::motors::add_motors;
-use crate::sensors::add_sensors;
 use crate::track::add_track;
 use crate::ui::add_ui_setup;
 

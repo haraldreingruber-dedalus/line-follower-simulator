@@ -12,7 +12,7 @@ use imu::compute_imu_data;
 use line_sensors::compute_sensor_readings;
 use motor_angles::compute_motor_angles_position;
 
-fn print_sensors_data(sensors_data: Res<SensorsData>) {
+fn _print_sensors_data(sensors_data: Res<SensorsData>) {
     println!("line sensors: {:?}", sensors_data.line_sensors);
     println!("bot position: {:?}", sensors_data.bot_position);
     println!(
@@ -39,7 +39,7 @@ pub fn add_sensors(app: &mut App) {
             compute_bot_position,
             compute_motor_angles_position,
             compute_imu_data,
-            //print_sensors_data,
+            // print_sensors_data,
         )
             .chain()
             .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),

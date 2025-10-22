@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{motors::Wheel, sensors::bot_position::BotPositionDetector};
+use crate::{bot::motors::Wheel, bot::sensors::bot_position::BotPositionDetector};
 use execution_data::{ExecutionData, ExecutionStep};
 
 fn store_data(

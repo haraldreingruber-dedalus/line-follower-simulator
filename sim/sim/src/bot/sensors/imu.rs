@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::sensors::bot_position::BotPositionDetector;
+use super::bot_position::BotPositionDetector;
 use execution_data::{GyroData, ImuFusedData, SensorsData};
 
 pub fn compute_imu_data(
