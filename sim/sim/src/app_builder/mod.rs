@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::scene::ScenePlugin;
-use bevy_editor_cam::DefaultEditorCamPlugins;
 use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::rapier::prelude::IntegrationParameters;
 use executor::wasm_bindings::exports::robot::Configuration;
