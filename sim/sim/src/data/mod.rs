@@ -30,11 +30,15 @@ fn store_data(
     ));
 }
 
-pub fn add_data(app: &mut App) {
-    app.insert_resource(ExecutionData::default()).add_systems(
-        RunFixedMainLoop,
-        (store_data)
-            .chain()
-            .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
-    );
+pub struct StoreExecDataPlugin;
+
+impl Plugin for StoreExecDataPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(ExecutionData::default()).add_systems(
+            RunFixedMainLoop,
+            (store_data)
+                .chain()
+                .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+        );
+    }
 }

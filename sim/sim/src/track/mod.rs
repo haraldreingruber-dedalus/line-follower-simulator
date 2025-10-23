@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy::text::cosmic_text::Angle;
 use bevy_rapier3d::prelude::*;
 
-use crate::utils::{Side, rotate_vec2};
+use crate::utils::{EntityFeatures, Side, rotate_vec2};
 
 const FLOOR_HEIGHT: f32 = 0.01;
 const FLOOR_SIZE: f32 = 20.0;
@@ -314,15 +314,29 @@ fn setup_track(mut commands: Commands, track: Res<Track>) {
     track.spawn_bundles(commands);
 }
 
-pub fn add_track(app: &mut App) -> &mut App {
-    app.insert_resource(Track::new(vec![
-        TrackSegment::start(),
-        TrackSegment::straight(2.0),
-        TrackSegment::ninety_deg_turn(0.5, Side::Right),
-        TrackSegment::cyrcle_turn(1.0, Angle::from_degrees(120.0), Side::Left),
-        TrackSegment::ninety_deg_turn(1.0, Side::Left),
-        TrackSegment::cyrcle_turn(2.0, Angle::from_degrees(60.0), Side::Right),
-        TrackSegment::end(),
-    ]))
-    .add_systems(Startup, setup_track)
+pub struct TrackPlugin {
+    features: EntityFeatures,
+}
+
+impl TrackPlugin {
+    pub fn new(features: EntityFeatures) -> Self {
+        Self { features }
+    }
+}
+
+impl Plugin for TrackPlugin {
+    fn build(&self, app: &mut App) {
+        // #TODO: add collider or meshes depending on self.features
+
+        app.insert_resource(Track::new(vec![
+            TrackSegment::start(),
+            TrackSegment::straight(2.0),
+            TrackSegment::ninety_deg_turn(0.5, Side::Right),
+            TrackSegment::cyrcle_turn(1.0, Angle::from_degrees(120.0), Side::Left),
+            TrackSegment::ninety_deg_turn(1.0, Side::Left),
+            TrackSegment::cyrcle_turn(2.0, Angle::from_degrees(60.0), Side::Right),
+            TrackSegment::end(),
+        ]))
+        .add_systems(Startup, setup_track);
+    }
 }

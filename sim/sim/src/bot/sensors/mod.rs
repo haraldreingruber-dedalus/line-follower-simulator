@@ -31,17 +31,21 @@ fn _print_sensors_data(sensors_data: Res<SensorsData>) {
     );
 }
 
-pub fn add_sensors(app: &mut App) {
-    app.insert_resource(SensorsData::default()).add_systems(
-        RunFixedMainLoop,
-        (
-            compute_sensor_readings,
-            compute_bot_position,
-            compute_motor_angles_position,
-            compute_imu_data,
-            // print_sensors_data,
-        )
-            .chain()
-            .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
-    );
+pub struct SensorsModelPlugin;
+
+impl Plugin for SensorsModelPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(SensorsData::default()).add_systems(
+            RunFixedMainLoop,
+            (
+                compute_sensor_readings,
+                compute_bot_position,
+                compute_motor_angles_position,
+                compute_imu_data,
+                // print_sensors_data,
+            )
+                .chain()
+                .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+        );
+    }
 }

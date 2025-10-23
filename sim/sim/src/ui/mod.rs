@@ -1,5 +1,9 @@
 use bevy::prelude::*;
-use bevy_editor_cam::prelude::{EditorCam, OrbitConstraint};
+use bevy_editor_cam::{
+    DefaultEditorCamPlugins,
+    prelude::{EditorCam, OrbitConstraint},
+};
+use bevy_rapier3d::render::RapierDebugRenderPlugin;
 use execution_data::{MotorDriversDutyCycles, PWM_MAX};
 
 fn handle_motors_input(
@@ -54,9 +58,25 @@ fn setup_ui(mut commands: Commands) {
     ));
 }
 
-pub fn add_ui_setup(app: &mut App) {
-    app.add_systems(Startup, setup_ui)
-        .add_systems(Update, handle_motors_input)
+pub struct CameraSetupPlugin;
+
+impl Plugin for CameraSetupPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins((
+            DefaultEditorCamPlugins,
+            // #FIXME: debug only
+            RapierDebugRenderPlugin::default(),
+        ))
+        .add_systems(Startup, setup_ui)
         // Background color
         .insert_resource(ClearColor(Color::srgb(0.05, 0.05, 0.1)));
+    }
+}
+
+pub struct KeyboardInputTestPlugin;
+
+impl Plugin for KeyboardInputTestPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, handle_motors_input);
+    }
 }

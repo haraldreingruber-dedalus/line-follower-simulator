@@ -155,12 +155,16 @@ fn apply_motors_pwm(
     motors_ext_force.torque = body_torque;
 }
 
-pub fn add_motors(app: &mut App) {
-    app.insert_resource(MotorDriversDutyCycles::default())
-        .add_systems(
-            RunFixedMainLoop,
-            (apply_motors_pwm)
-                .chain()
-                .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
-        );
+pub struct MotorsModelPlugin;
+
+impl Plugin for MotorsModelPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(MotorDriversDutyCycles::default())
+            .add_systems(
+                RunFixedMainLoop,
+                (apply_motors_pwm)
+                    .chain()
+                    .in_set(RunFixedMainLoopSystem::BeforeFixedMainLoop),
+            );
+    }
 }

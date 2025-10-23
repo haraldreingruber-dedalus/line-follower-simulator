@@ -49,3 +49,27 @@ pub fn point_to_new_origin(point: Vec3, transform: &GlobalTransform) -> Vec2 {
         -transform.rotation().to_euler(EulerRot::ZYX).0,
     )
 }
+
+pub enum EntityFeatures {
+    Physics,
+    Visualization,
+    PhysicsAndVisualization,
+}
+
+impl EntityFeatures {
+    pub fn has_physics(&self) -> bool {
+        match self {
+            EntityFeatures::Physics => true,
+            EntityFeatures::Visualization => false,
+            EntityFeatures::PhysicsAndVisualization => true,
+        }
+    }
+
+    pub fn has_visualization(&self) -> bool {
+        match self {
+            EntityFeatures::Physics => false,
+            EntityFeatures::Visualization => true,
+            EntityFeatures::PhysicsAndVisualization => true,
+        }
+    }
+}

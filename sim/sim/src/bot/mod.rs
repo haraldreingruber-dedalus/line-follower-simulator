@@ -9,38 +9,17 @@ use model::setup_bot_model;
 use motors::Wheel;
 use vis::setup_bot_visualizer;
 
-use crate::utils::Side;
-
-pub enum BotFeatures {
-    Physics,
-    Visualization,
-    PhysicsAndVisualization,
-}
-
-impl BotFeatures {
-    pub fn has_physics(&self) -> bool {
-        match self {
-            BotFeatures::Physics => true,
-            BotFeatures::Visualization => false,
-            BotFeatures::PhysicsAndVisualization => true,
-        }
-    }
-
-    pub fn has_visualization(&self) -> bool {
-        match self {
-            BotFeatures::Physics => false,
-            BotFeatures::Visualization => true,
-            BotFeatures::PhysicsAndVisualization => true,
-        }
-    }
-}
+use crate::{
+    bot::{motors::MotorsModelPlugin, sensors::SensorsModelPlugin},
+    utils::{EntityFeatures, Side},
+};
 
 pub struct BotPlugin {
-    features: BotFeatures,
+    features: EntityFeatures,
 }
 
 impl BotPlugin {
-    pub fn new(features: BotFeatures) -> Self {
+    pub fn new(features: EntityFeatures) -> Self {
         Self { features }
     }
 }
@@ -50,6 +29,7 @@ impl Plugin for BotPlugin {
         app.add_systems(Startup, setup_bot_entities);
         if self.features.has_physics() {
             app.add_systems(Startup, setup_bot_model.after(setup_bot_entities));
+            app.add_plugins((MotorsModelPlugin, SensorsModelPlugin));
         }
         if self.features.has_visualization() {
             app.add_systems(Startup, setup_bot_visualizer.after(setup_bot_entities));
@@ -66,8 +46,4 @@ pub fn setup_bot_entities(mut commands: Commands) {
         commands.spawn(Wheel::new(Vec3::NEG_X * side.sign(), side));
         commands.spawn(Wheel::new(Vec3::NEG_X * side.sign(), side));
     }
-}
-
-pub fn add_bot_setup(app: &mut App) {
-    app.add_plugins(BotPlugin::new(BotFeatures::PhysicsAndVisualization));
 }

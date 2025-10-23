@@ -6,7 +6,6 @@ use super::motors::{Motors, Wheel};
 use super::sensors::bot_position::BotPositionDetector;
 use super::sensors::line_sensors::LineSensor;
 use crate::app_builder::BotConfigWrapper;
-use crate::utils::Side;
 
 const BOT_COLLISION_GROUP: Group = Group::GROUP_1;
 
