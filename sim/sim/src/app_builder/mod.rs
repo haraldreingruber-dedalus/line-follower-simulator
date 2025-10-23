@@ -8,6 +8,7 @@ use executor::wasm_bindings::exports::robot::Configuration;
 use crate::bot::BotPlugin;
 use crate::track::TrackPlugin;
 use crate::ui::{CameraSetupPlugin, KeyboardInputTestPlugin};
+use crate::utils::EntityFeatures;
 
 #[derive(Resource)]
 pub struct BotConfigWrapper {
@@ -27,23 +28,23 @@ pub enum AppType {
 }
 
 impl AppType {
-    pub fn has_physics(&self) -> bool {
+    fn entity_features(&self) -> EntityFeatures {
         match self {
-            AppType::Simulator(_) => true,
-            AppType::Test(_) => true,
-            AppType::Visualizer => false,
+            AppType::Simulator(_) => EntityFeatures::Physics,
+            AppType::Test(_) => EntityFeatures::PhysicsAndVisualization,
+            AppType::Visualizer => EntityFeatures::Visualization,
         }
+    }
+
+    pub fn has_physics(&self) -> bool {
+        self.entity_features().has_physics()
     }
 
     pub fn has_visualization(&self) -> bool {
-        match self {
-            AppType::Simulator(_) => false,
-            AppType::Test(_) => true,
-            AppType::Visualizer => true,
-        }
+        self.entity_features().has_visualization()
     }
 
-    pub fn get_configuration(&self) -> Option<&Configuration> {
+    pub fn into_configuration(self) -> Option<Configuration> {
         match self {
             AppType::Simulator(config) => Some(config),
             AppType::Test(config) => Some(config),
@@ -110,18 +111,18 @@ pub fn create_app(app_type: AppType, step_period_us: u32) -> App {
         app.add_plugins(RapierPhysicsSetupPlugin);
     }
 
-    if let Some(config) = app_type.get_configuration() {
-        app.insert_resource(BotConfigWrapper::new(config.clone()));
-    }
-
     app.add_plugins((
-        BotPlugin::new(crate::utils::EntityFeatures::Physics),
-        TrackPlugin::new(crate::utils::EntityFeatures::Physics),
+        BotPlugin::new(app_type.entity_features()),
+        TrackPlugin::new(app_type.entity_features()),
     ));
 
     if matches!(app_type, AppType::Test(_)) {
         app.add_plugins(KeyboardInputTestPlugin);
     }
+
+    app_type
+        .into_configuration()
+        .map(|config| app.insert_resource(BotConfigWrapper::new(config)));
 
     app
 }
