@@ -139,44 +139,40 @@ pub fn simulator_runner(
     let wasm_bytes = std::fs::read(&input)?;
 
     // Get configuration
-    let result_cfg = wasm_executor::get_robot_configuration(&wasm_bytes)?;
-    println!("Robot configuration: {:#?}", &result_cfg);
+    let cfg = wasm_executor::get_robot_configuration(&wasm_bytes)?;
+    println!("Robot configuration: {:#?}", &cfg);
 
     let (result_sender, result_receiver) = std::sync::mpsc::channel();
 
-    let runner_cfg = result_cfg.clone();
-    create_app(
-        app_builder::AppType::Simulator(runner_cfg.clone()),
-        step_period_us,
-    )
-    .set_runner(move |app| {
-        let app_wrapper = AppWrapper::new(app);
-        let stepper = RunnerStepper::new(app_wrapper, step_period_us);
+    create_app(app_builder::AppType::Simulator(cfg.clone()), step_period_us)
+        .set_runner(move |app| {
+            let app_wrapper = AppWrapper::new(app);
+            let stepper = RunnerStepper::new(app_wrapper, step_period_us);
 
-        // Run robot logic
-        let sim_result = wasm_executor::run_robot_simulation(
-            &wasm_bytes,
-            stepper,
-            executor::TOTAL_SIMULATION_TIME_US,
-            Some(output.into()),
-            logs,
-        );
+            // Run robot logic
+            let sim_result = wasm_executor::run_robot_simulation(
+                &wasm_bytes,
+                stepper,
+                executor::TOTAL_SIMULATION_TIME_US,
+                Some(output.into()),
+                logs,
+            );
 
-        // Prepare bevy app result
-        let app_result = if sim_result.is_ok() {
-            AppExit::Success
-        } else {
-            AppExit::error()
-        };
+            // Prepare bevy app result
+            let app_result = if sim_result.is_ok() {
+                AppExit::Success
+            } else {
+                AppExit::error()
+            };
 
-        // Send result back
-        result_sender.send(sim_result).ok();
-        app_result
-    })
-    .run();
+            // Send result back
+            result_sender.send(sim_result).ok();
+            app_result
+        })
+        .run();
 
     match result_receiver.recv() {
-        Ok(result) => result.map(move |data| (data, result_cfg)),
+        Ok(result) => result.map(move |data| (data, cfg)),
         Err(_) => Err(wasmtime::Error::msg("Failed to receive result")),
     }
 }
