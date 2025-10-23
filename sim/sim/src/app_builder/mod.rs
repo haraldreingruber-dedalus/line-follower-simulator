@@ -6,7 +6,7 @@ use executor::wasm_bindings::exports::robot::Configuration;
 
 use crate::bot::BotPlugin;
 use crate::track::TrackPlugin;
-use crate::ui::GuiSetup;
+use crate::ui::GuiSetupPlugin;
 use crate::utils::EntityFeatures;
 
 #[derive(Resource)]
@@ -115,7 +115,7 @@ pub fn create_app(app_type: AppType, step_period_us: u32) -> App {
         TrackPlugin::new(app_type.entity_features()),
     ));
 
-    app.add_plugins(GuiSetup::new(app_type.entity_features()));
+    app.add_plugins(GuiSetupPlugin::new(app_type.entity_features()));
 
     app_type
         .into_configuration()

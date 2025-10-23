@@ -56,11 +56,11 @@ pub fn test_gui_setup(app: &mut App) {
         .insert_resource(TestGuiState::default());
 }
 
-pub struct GuiSetup {
+pub struct GuiSetupPlugin {
     features: EntityFeatures,
 }
 
-impl GuiSetup {
+impl GuiSetupPlugin {
     pub fn new(features: EntityFeatures) -> Self {
         Self { features }
     }
@@ -73,7 +73,7 @@ fn egui_style_setup(mut contexts: EguiContexts) -> Result {
     Ok(())
 }
 
-impl Plugin for GuiSetup {
+impl Plugin for GuiSetupPlugin {
     fn build(&self, app: &mut App) {
         if self.features.has_visualization() {
             app.add_plugins(CameraSetupPlugin);
