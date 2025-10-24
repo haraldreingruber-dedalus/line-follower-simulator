@@ -39,6 +39,9 @@ enum Command {
         /// Simulation step period in us
         #[clap(long, short, default_value = "500")]
         period: u32,
+        /// CLI only (run headless, without graphical visualizer)
+        #[clap(long, short)]
+        cli: bool,
     },
     /// Test a robot configuration
     Test {
@@ -78,6 +81,7 @@ fn main() -> executor::wasmtime::Result<()> {
             output,
             logs,
             period,
+            cli,
         } => {
             println!(
                 "running robot \"{}\" output at path \"{}\" (write logs: {})...",
@@ -87,16 +91,18 @@ fn main() -> executor::wasmtime::Result<()> {
             let bot_execution_data = run_bot_from_file(input, Some(output.clone()), logs, period)?;
             println!("data has {} frames", bot_execution_data.data.steps.len());
 
-            create_app(
-                app_builder::AppType::Visualizer(app_builder::VisualizerData::Runner {
-                    bot: bot_execution_data,
-                    output,
-                    logs,
+            if !cli {
+                create_app(
+                    app_builder::AppType::Visualizer(app_builder::VisualizerData::Runner {
+                        bot: bot_execution_data,
+                        output,
+                        logs,
+                        period,
+                    }),
                     period,
-                }),
-                period,
-            )
-            .run();
+                )
+                .run();
+            }
         }
         Command::Test {
             input,
