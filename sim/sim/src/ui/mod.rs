@@ -18,8 +18,13 @@ use egui_material_icons::icons::{
     ICON_SOUTH_EAST, ICON_SOUTH_WEST, ICON_WEST, ICON_ZOOM_IN, ICON_ZOOM_OUT,
 };
 use execution_data::{MotorDriversDutyCycles, PWM_MAX, SensorsData};
+use executor::wasmtime;
 
-use crate::utils::EntityFeatures;
+use crate::{
+    app_builder::{AppType, BotConfigWrapper, VisualizerData},
+    runner::{BotExecutionData, run_bot_from_file},
+    server::start_server,
+};
 
 fn common_gui_setup(app: &mut App) {
     app.add_plugins(EguiPlugin::default())
@@ -46,9 +51,33 @@ fn setup_egui(mut commands: Commands, mut egui_global_settings: ResMut<EguiGloba
     ));
 }
 
-pub fn runner_gui_setup(app: &mut App) {
+pub fn runner_gui_setup(app: &mut App, visualizer_data: VisualizerData) {
+    let gui_state = RunnerGuiState::new(
+        visualizer_data.output(),
+        visualizer_data.logs(),
+        visualizer_data.period(),
+    );
+
+    match visualizer_data {
+        VisualizerData::Server {
+            address,
+            port,
+            period,
+        } => {
+            let sender = gui_state.get_bot_sender().clone();
+            start_server(address, port, period, sender)
+                .map_err(|err| {
+                    eprintln!("error starting HTTP server: {}", err.to_string());
+                    err
+                })
+                .expect("failed to start server");
+        }
+        VisualizerData::Runner { .. } => {
+            // TODO: spawn bot visualizer entity
+        }
+    }
     app.add_systems(EguiPrimaryContextPass, runner_gui_update)
-        .insert_resource(RunnerGuiState::default());
+        .insert_resource(gui_state);
 }
 
 pub fn test_gui_setup(app: &mut App) {
@@ -57,12 +86,12 @@ pub fn test_gui_setup(app: &mut App) {
 }
 
 pub struct GuiSetupPlugin {
-    features: EntityFeatures,
+    app_type: AppType,
 }
 
 impl GuiSetupPlugin {
-    pub fn new(features: EntityFeatures) -> Self {
-        Self { features }
+    pub fn new(app_type: AppType) -> Self {
+        Self { app_type }
     }
 }
 
@@ -75,14 +104,22 @@ fn egui_style_setup(mut contexts: EguiContexts) -> Result {
 
 impl Plugin for GuiSetupPlugin {
     fn build(&self, app: &mut App) {
-        if self.features.has_visualization() {
+        let has_visualization = self.app_type.has_visualization();
+        let has_physics = self.app_type.has_physics();
+        let (configuration, visualizer_data) = self.app_type.into_app_data();
+
+        configuration.map(|config| app.insert_resource(BotConfigWrapper::new(config)));
+
+        if has_visualization {
             app.add_plugins(CameraSetupPlugin);
             app.add_plugins(common_gui_setup);
 
-            if self.features.has_physics() {
+            if has_physics {
                 app.add_plugins(test_gui_setup);
             } else {
-                app.add_plugins(runner_gui_setup);
+                let visualizer_data =
+                    visualizer_data.expect("cannot build visualized without initial data");
+                runner_gui_setup(app, visualizer_data);
             }
         }
     }
@@ -91,17 +128,20 @@ impl Plugin for GuiSetupPlugin {
 #[derive(Resource)]
 struct RunnerGuiState {
     file_dialog: FileDialog,
-    new_bot_sender: Mutex<std::sync::mpsc::Sender<std::io::Result<Vec<u8>>>>,
-    new_bot_receiver: Mutex<std::sync::mpsc::Receiver<std::io::Result<Vec<u8>>>>,
+    new_bot_sender: Mutex<std::sync::mpsc::Sender<wasmtime::Result<BotExecutionData>>>,
+    new_bot_receiver: Mutex<std::sync::mpsc::Receiver<wasmtime::Result<BotExecutionData>>>,
     base_text_size: f32,
     play_time_sec: f32,
     play_active: bool,
     play_max_sec: f32,
+    output: Option<String>,
+    logs: bool,
+    period: u32,
     bot_with_pending_remove: Option<BotName>,
 }
 
-impl Default for RunnerGuiState {
-    fn default() -> Self {
+impl RunnerGuiState {
+    pub fn new(output: Option<String>, logs: bool, period: u32) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         Self {
             file_dialog: FileDialog::new(),
@@ -111,20 +151,21 @@ impl Default for RunnerGuiState {
             play_time_sec: 0.0,
             play_active: false,
             play_max_sec: 60.0,
+            output,
+            logs,
+            period,
             bot_with_pending_remove: None,
         }
     }
-}
 
-impl RunnerGuiState {
-    pub fn get_bot_sender(&self) -> std::sync::mpsc::Sender<std::io::Result<Vec<u8>>> {
+    pub fn get_bot_sender(&self) -> std::sync::mpsc::Sender<wasmtime::Result<BotExecutionData>> {
         self.new_bot_sender.lock().unwrap().clone()
     }
 
     pub fn handle_new_bots(&self) {
         while let Ok(bot) = self.new_bot_receiver.lock().unwrap().try_recv() {
             match bot {
-                Ok(bot) => println!("new bot code: len {}", bot.len()),
+                Ok(bot) => println!("new bot steps: len {}", bot.data.steps.len()),
                 Err(err) => error!("Error receiving new bot: {}", err),
             }
         }
@@ -204,8 +245,11 @@ fn runner_gui_update(
                 gui_state.file_dialog.update(ctx);
                 if let Some(path) = gui_state.file_dialog.take_picked() {
                     let sender = gui_state.get_bot_sender();
+                    let output = gui_state.output.clone();
+                    let logs = gui_state.logs;
+                    let period = gui_state.period;
                     std::thread::spawn(move || {
-                        process_new_bot(path, sender);
+                        process_new_bot(path, output, logs, period, sender);
                     });
                 }
                 gui_state.handle_new_bots();
@@ -494,8 +538,19 @@ fn camera_buttons(
     });
 }
 
-fn process_new_bot(path: PathBuf, sender: std::sync::mpsc::Sender<std::io::Result<Vec<u8>>>) {
-    sender.send(std::fs::read(path)).unwrap();
+fn process_new_bot(
+    path: PathBuf,
+    output: Option<String>,
+    logs: bool,
+    period: u32,
+    sender: std::sync::mpsc::Sender<wasmtime::Result<BotExecutionData>>,
+) {
+    let input = path.display().to_string();
+    std::thread::spawn(move || {
+        sender
+            .send(run_bot_from_file(input, output, logs, period))
+            .ok();
+    });
 }
 
 fn ask_bot_remove(ui: &mut Ui, gui_state: &mut RunnerGuiState) -> Option<bool> {

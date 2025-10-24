@@ -1,13 +1,13 @@
+use crate::bot::BotPlugin;
+use crate::runner::BotExecutionData;
+use crate::track::TrackPlugin;
+use crate::ui::GuiSetupPlugin;
+use crate::utils::EntityFeatures;
 use bevy::prelude::*;
 use bevy::scene::ScenePlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::rapier::prelude::IntegrationParameters;
 use executor::wasm_bindings::exports::robot::Configuration;
-
-use crate::bot::BotPlugin;
-use crate::track::TrackPlugin;
-use crate::ui::GuiSetupPlugin;
-use crate::utils::EntityFeatures;
 
 #[derive(Resource)]
 pub struct BotConfigWrapper {
@@ -15,15 +15,53 @@ pub struct BotConfigWrapper {
 }
 
 impl BotConfigWrapper {
-    fn new(config: Configuration) -> Self {
+    pub fn new(config: Configuration) -> Self {
         Self { config }
+    }
+}
+
+#[derive(Clone)]
+pub enum VisualizerData {
+    Server {
+        address: String,
+        port: u16,
+        period: u32,
+    },
+    Runner {
+        bot: BotExecutionData,
+        output: String,
+        logs: bool,
+        period: u32,
+    },
+}
+
+impl VisualizerData {
+    pub fn output(&self) -> Option<String> {
+        match self {
+            VisualizerData::Server { .. } => None,
+            VisualizerData::Runner { output, .. } => Some(output.clone()),
+        }
+    }
+
+    pub fn logs(&self) -> bool {
+        match self {
+            VisualizerData::Server { .. } => false,
+            VisualizerData::Runner { logs, .. } => *logs,
+        }
+    }
+
+    pub fn period(&self) -> u32 {
+        match self {
+            VisualizerData::Server { period, .. } => *period,
+            VisualizerData::Runner { period, .. } => *period,
+        }
     }
 }
 
 pub enum AppType {
     Simulator(Configuration),
     Test(Configuration),
-    Visualizer,
+    Visualizer(VisualizerData),
 }
 
 impl AppType {
@@ -31,7 +69,7 @@ impl AppType {
         match self {
             AppType::Simulator(_) => EntityFeatures::Physics,
             AppType::Test(_) => EntityFeatures::PhysicsAndVisualization,
-            AppType::Visualizer => EntityFeatures::Visualization,
+            AppType::Visualizer(_) => EntityFeatures::Visualization,
         }
     }
 
@@ -43,11 +81,11 @@ impl AppType {
         self.entity_features().has_visualization()
     }
 
-    pub fn into_configuration(self) -> Option<Configuration> {
+    pub fn into_app_data(&self) -> (Option<Configuration>, Option<VisualizerData>) {
         match self {
-            AppType::Simulator(config) => Some(config),
-            AppType::Test(config) => Some(config),
-            AppType::Visualizer => None,
+            AppType::Simulator(config) => (Some(config.clone()), None),
+            AppType::Test(config) => (Some(config.clone()), None),
+            AppType::Visualizer(data) => (None, Some(data.clone())),
         }
     }
 }
@@ -115,11 +153,7 @@ pub fn create_app(app_type: AppType, step_period_us: u32) -> App {
         TrackPlugin::new(app_type.entity_features()),
     ));
 
-    app.add_plugins(GuiSetupPlugin::new(app_type.entity_features()));
-
-    app_type
-        .into_configuration()
-        .map(|config| app.insert_resource(BotConfigWrapper::new(config)));
+    app.add_plugins(GuiSetupPlugin::new(app_type));
 
     app
 }

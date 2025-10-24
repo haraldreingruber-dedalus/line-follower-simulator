@@ -1,6 +1,7 @@
+use app_builder::VisualizerData;
 use clap::{self, Parser, Subcommand};
 use executor::wasm_bindings::exports::robot::{Color, Configuration};
-use runner::simulator_runner;
+use runner::run_bot_from_file;
 
 use crate::app_builder::create_app;
 
@@ -8,6 +9,7 @@ mod app_builder;
 mod bot;
 mod data;
 mod runner;
+mod server;
 mod track;
 mod ui;
 mod utils;
@@ -49,9 +51,22 @@ enum Command {
         /// Save robot logs
         #[clap(long, short)]
         logs: bool,
+        /// Simulation step period in us
+        #[clap(long, short, default_value = "500")]
+        period: u32,
     },
     /// Run the simulator accepting robots from HTTP requests
-    Serve,
+    Serve {
+        /// Address the server will bind to
+        #[clap(long, short, default_value = "0.0.0.0")]
+        address: String,
+        /// HTTP server port
+        #[clap(long, short, default_value = "9999")]
+        port: u16,
+        /// Simulation step period in us
+        #[clap(long, short, default_value = "500")]
+        period: u32,
+    },
 }
 
 fn main() -> executor::wasmtime::Result<()> {
@@ -69,13 +84,25 @@ fn main() -> executor::wasmtime::Result<()> {
                 input, output, logs
             );
 
-            let (data, _cfg) = simulator_runner(input, output, logs, period)?;
-            println!("data has {} frames", data.steps.len());
+            let bot_execution_data = run_bot_from_file(input, Some(output.clone()), logs, period)?;
+            println!("data has {} frames", bot_execution_data.data.steps.len());
+
+            create_app(
+                app_builder::AppType::Visualizer(app_builder::VisualizerData::Runner {
+                    bot: bot_execution_data,
+                    output,
+                    logs,
+                    period,
+                }),
+                period,
+            )
+            .run();
         }
         Command::Test {
             input,
             output,
             logs,
+            period,
         } => {
             println!(
                 "test robot \"{}\" output at path \"{}\" (write logs: {})...",
@@ -101,10 +128,23 @@ fn main() -> executor::wasmtime::Result<()> {
                 front_sensors_height: 2.0,
             };
 
-            create_app(app_builder::AppType::Test(bot_config), 500).run();
+            create_app(app_builder::AppType::Test(bot_config), period).run();
         }
-        Command::Serve => {
+        Command::Serve {
+            address,
+            port,
+            period,
+        } => {
             println!("Starting server...");
+            create_app(
+                app_builder::AppType::Visualizer(VisualizerData::Server {
+                    address,
+                    port,
+                    period,
+                }),
+                period,
+            )
+            .run();
         }
     }
 

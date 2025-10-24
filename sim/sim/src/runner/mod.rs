@@ -129,50 +129,67 @@ impl execution_data::SimulationStepper for RunnerStepper {
     }
 }
 
-pub fn simulator_runner(
+#[derive(Clone)]
+pub struct BotExecutionData {
+    pub config: Configuration,
+    pub data: ExecutionData,
+}
+
+pub fn run_bot_from_file(
     input: String,
-    output: String,
+    output: Option<String>,
     logs: bool,
     step_period_us: u32,
-) -> wasmtime::Result<(ExecutionData, Configuration)> {
+) -> wasmtime::Result<BotExecutionData> {
     // Load the component from disk
     let wasm_bytes = std::fs::read(&input)?;
+    run_bot_from_code(wasm_bytes, output, logs, step_period_us)
+}
 
+pub fn run_bot_from_code(
+    wasm_bytes: Vec<u8>,
+    output: Option<String>,
+    logs: bool,
+    step_period_us: u32,
+) -> wasmtime::Result<BotExecutionData> {
     // Get configuration
-    let cfg = wasm_executor::get_robot_configuration(&wasm_bytes)?;
-    println!("Robot configuration: {:#?}", &cfg);
+    let config = wasm_executor::get_robot_configuration(&wasm_bytes)?;
+    println!("Robot configuration: {:#?}", &config);
 
     let (result_sender, result_receiver) = std::sync::mpsc::channel();
 
-    create_app(app_builder::AppType::Simulator(cfg.clone()), step_period_us)
-        .set_runner(move |app| {
-            let app_wrapper = AppWrapper::new(app);
-            let stepper = RunnerStepper::new(app_wrapper, step_period_us);
+    create_app(
+        app_builder::AppType::Simulator(config.clone()),
+        step_period_us,
+    )
+    .set_runner(move |app| {
+        let app_wrapper = AppWrapper::new(app);
+        let stepper = RunnerStepper::new(app_wrapper, step_period_us);
 
-            // Run robot logic
-            let sim_result = wasm_executor::run_robot_simulation(
-                &wasm_bytes,
-                stepper,
-                executor::TOTAL_SIMULATION_TIME_US,
-                Some(output.into()),
-                logs,
-            );
+        // Run robot logic
+        let sim_result = wasm_executor::run_robot_simulation(
+            &wasm_bytes,
+            stepper,
+            executor::TOTAL_SIMULATION_TIME_US,
+            output.map(|output| output.into()),
+            logs,
+        );
 
-            // Prepare bevy app result
-            let app_result = if sim_result.is_ok() {
-                AppExit::Success
-            } else {
-                AppExit::error()
-            };
+        // Prepare bevy app result
+        let app_result = if sim_result.is_ok() {
+            AppExit::Success
+        } else {
+            AppExit::error()
+        };
 
-            // Send result back
-            result_sender.send(sim_result).ok();
-            app_result
-        })
-        .run();
+        // Send result back
+        result_sender.send(sim_result).ok();
+        app_result
+    })
+    .run();
 
     match result_receiver.recv() {
-        Ok(result) => result.map(move |data| (data, cfg)),
+        Ok(result) => result.map(move |data| BotExecutionData { config, data }),
         Err(_) => Err(wasmtime::Error::msg("Failed to receive result")),
     }
 }

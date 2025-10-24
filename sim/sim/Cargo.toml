@@ -16,3 +16,4 @@ bevy_editor_cam = { workspace = true }
 bevy_egui = { workspace = true }
 egui-file-dialog = { workspace = true }
 egui_material_icons = { workspace = true }
+tiny_http = { workspace = true }
