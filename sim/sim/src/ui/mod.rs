@@ -177,25 +177,30 @@ fn runner_gui_update(
                 }
 
                 ui.add_space(size / 2.0);
-                rl(ui, format!("{:.3}", gui_state.play_time_sec), size);
-                ui.add_space(size / 2.0);
 
-                let max_time = gui_state.play_max_sec;
-                ui.add(
-                    egui::Slider::new(&mut gui_state.play_time_sec, 0.0..=max_time)
-                        .show_value(false),
-                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if icon_button(ui, ICON_ADD, size).clicked() {
+                        gui_state.file_dialog.pick_file();
+                    }
+                    if icon_button(ui, ICON_ZOOM_IN, size).clicked() {
+                        gui_state.base_text_size += 1.0;
+                        gui_state.base_text_size = gui_state.base_text_size.max(3.0);
+                    }
+                    if icon_button(ui, ICON_ZOOM_OUT, size).clicked() {
+                        gui_state.base_text_size -= 1.0;
+                    }
 
-                if icon_button(ui, ICON_ZOOM_IN, size).clicked() {
-                    gui_state.base_text_size += 1.0;
-                }
-                if icon_button(ui, ICON_ZOOM_OUT, size).clicked() {
-                    gui_state.base_text_size -= 1.0;
-                    gui_state.base_text_size = gui_state.base_text_size.max(3.0);
-                }
-                if icon_button(ui, ICON_ADD, size).clicked() {
-                    gui_state.file_dialog.pick_file();
-                }
+                    let w = ui.available_width();
+                    ui.style_mut().spacing.slider_width = w;
+                    let max_time = gui_state.play_max_sec;
+                    ui.add(
+                        egui::Slider::new(&mut gui_state.play_time_sec, 0.0..=max_time)
+                            .show_value(false),
+                    );
+                    ui.add_space(size / 2.0);
+                    rl(ui, format!("{:.3}", gui_state.play_time_sec), size);
+                });
+
                 gui_state.file_dialog.update(ctx);
                 if let Some(path) = gui_state.file_dialog.take_picked() {
                     let sender = gui_state.get_bot_sender();
