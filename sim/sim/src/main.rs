@@ -131,7 +131,7 @@ fn main() -> executor::wasmtime::Result<()> {
                 gear_ratio_num: 1,
                 gear_ratio_den: 1,
                 front_sensors_spacing: 10.0,
-                front_sensors_height: 2.0,
+                front_sensors_height: 4.0,
             };
 
             create_app(app_builder::AppType::Test(bot_config), period).run();
