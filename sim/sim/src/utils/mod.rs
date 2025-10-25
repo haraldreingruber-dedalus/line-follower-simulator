@@ -1,6 +1,8 @@
+use bevy::ecs::resource::Resource;
 use bevy::math::{EulerRot, Vec2, Vec3};
 use bevy::transform::components::GlobalTransform;
 use execution_data::MotorDriversDutyCycles;
+use rand::{Rng, SeedableRng};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -91,5 +93,28 @@ impl EntityFeatures {
             EntityFeatures::Visualization => true,
             EntityFeatures::PhysicsAndVisualization => true,
         }
+    }
+}
+
+/// A fast, deterministic generator of random numbers with normal distribution.
+#[derive(Resource)]
+pub struct NormalRandom {
+    rng: rand::rngs::SmallRng,
+}
+
+impl NormalRandom {
+    pub fn new() -> Self {
+        NormalRandom {
+            rng: rand::rngs::SmallRng::seed_from_u64(42),
+        }
+    }
+
+    pub fn sample(&mut self) -> f32 {
+        self.rng
+            .sample::<f32, rand_distr::StandardNormal>(rand_distr::StandardNormal)
+    }
+
+    pub fn noisy_value(&mut self, value: f32, noise: f32) -> f32 {
+        (self.sample() * noise) + value
     }
 }

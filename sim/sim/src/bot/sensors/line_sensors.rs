@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::track::{TRACK_HALF_WIDTH, TrackSegment};
-use crate::utils::point_to_new_origin;
+use crate::utils::{NormalRandom, point_to_new_origin};
 use execution_data::SensorsData;
 
 fn line_reflection(x: f32) -> f32 {
@@ -75,11 +75,13 @@ pub fn compute_sensor_readings(
     read_rapier_context: ReadRapierContext,
     sensors_query: Query<&GlobalTransform, With<LineSensor>>,
     track_segments_query: Query<(&TrackSegment, &GlobalTransform)>,
+    mut rng: ResMut<NormalRandom>,
     mut sensors_data: ResMut<SensorsData>,
 ) {
     let rapier_context = read_rapier_context.single().unwrap();
 
     for (i, sensor_tf) in sensors_query.iter().enumerate() {
+        const NOISE: f32 = 1.0;
         let origin = sensor_tf.translation();
         let dir = sensor_tf.rotation().mul_vec3(Vec3::NEG_Z);
         let max_toi = 0.1;
@@ -94,11 +96,15 @@ pub fn compute_sensor_readings(
             // Sensor is over the track
             let point: Vec3 = intersection.point.into();
             let (track_segment, transform) = track_segments_query.get(entity).unwrap();
-            sensors_data.line_sensors[i] =
-                track_segment.intersection_to_sensor_value(point, transform);
+            sensors_data.line_sensors[i] = rng
+                .noisy_value(
+                    track_segment.intersection_to_sensor_value(point, transform),
+                    NOISE,
+                )
+                .clamp(0.0, 100.0);
         } else {
             // Sensor is out
-            sensors_data.line_sensors[i] = 100.0;
+            sensors_data.line_sensors[i] = rng.noisy_value(100.0, NOISE).clamp(0.0, 100.0);
         }
     }
 }

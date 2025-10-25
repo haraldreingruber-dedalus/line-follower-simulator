@@ -2,7 +2,7 @@ use crate::bot::BotPlugin;
 use crate::runner::BotExecutionData;
 use crate::track::TrackPlugin;
 use crate::ui::GuiSetupPlugin;
-use crate::utils::EntityFeatures;
+use crate::utils::{EntityFeatures, NormalRandom};
 use bevy::prelude::*;
 use bevy::scene::ScenePlugin;
 use bevy_rapier3d::prelude::*;
@@ -147,6 +147,7 @@ pub fn create_app(app_type: AppType, step_period_us: u32) -> App {
 
     let step_hz = 1_000_000.0 / (step_period_us as f64);
     app.insert_resource(Time::<Fixed>::from_hz(step_hz));
+    app.insert_resource(NormalRandom::new());
 
     if app_type.has_visualization() {
         app.add_plugins(WindowSetupPlugin);
