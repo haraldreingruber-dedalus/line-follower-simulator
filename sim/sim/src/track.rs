@@ -472,8 +472,8 @@ impl TrackSegment {
         origin: SegmentTransform,
         features: EntityFeatures,
         commands: &mut Commands,
-        meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<StandardMaterial>>,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<StandardMaterial>,
     ) {
         let entity = commands
             .spawn((*self, ChildOf(parent), self.transform(origin)))
@@ -515,9 +515,9 @@ impl Track {
         &self,
         parent: Entity,
         features: EntityFeatures,
-        mut commands: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
+        commands: &mut Commands,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<StandardMaterial>,
     ) {
         let mut segment_origin = self.origin;
 
@@ -526,22 +526,22 @@ impl Track {
                 parent,
                 segment_origin,
                 features,
-                &mut commands,
-                &mut meshes,
-                &mut materials,
+                commands,
+                meshes,
+                materials,
             );
             segment_origin = segment.compute_next_origin(segment_origin);
         }
     }
 }
 
-fn setup_track(
-    mut commands: Commands,
+pub fn setup_track(
+    commands: &mut Commands,
     track_parent: Entity,
     features: EntityFeatures,
-    track: Res<Track>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<StandardMaterial>>,
+    track: &Track,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
 ) {
     if features.has_physics() {
         // Static floor
@@ -573,10 +573,17 @@ impl Plugin for TrackPlugin {
             Startup,
             move |mut commands: Commands,
                   track: Res<Track>,
-                  meshes: ResMut<Assets<Mesh>>,
-                  materials: ResMut<Assets<StandardMaterial>>| {
+                  mut meshes: ResMut<Assets<Mesh>>,
+                  mut materials: ResMut<Assets<StandardMaterial>>| {
                 let track_parent = commands.spawn(Transform::default()).id();
-                setup_track(commands, track_parent, features, track, meshes, materials)
+                setup_track(
+                    &mut commands,
+                    track_parent,
+                    features,
+                    &track,
+                    &mut meshes,
+                    &mut materials,
+                )
             },
         );
     }

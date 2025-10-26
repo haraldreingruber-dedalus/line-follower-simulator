@@ -1,5 +1,6 @@
 use bevy::ecs::system::Commands;
 use bevy::prelude::*;
+use execution_data::{BodyExecutionData, WheelExecutionData};
 use executor::wasm_bindings::exports::robot::Configuration;
 
 use super::motors::Wheel;
@@ -46,18 +47,13 @@ pub fn setup_bot_assets(
     commands.insert_resource(assets);
 }
 
-#[derive(Component)]
-pub struct BotBodyExecutionData {
-    // TODO: steps data
-}
-
-fn spawn_bot_body(
+pub fn spawn_bot_body(
     commands: &mut Commands,
     parent: Entity,
     configuration: &Configuration,
     assets: &BotAssets,
-    data: Option<BotBodyExecutionData>,
-) {
+    data: Option<BodyExecutionData>,
+) -> Entity {
     let id = commands
         .spawn((
             ChildOf(parent),
@@ -68,19 +64,15 @@ fn spawn_bot_body(
     if let Some(data) = data {
         commands.entity(id).insert(data);
     }
+    id
 }
 
-#[derive(Component)]
-pub struct BotWheelExecutionData {
-    // TODO: steps data and wheel side
-}
-
-fn spawn_bot_wheel(
+pub fn spawn_bot_wheel(
     commands: &mut Commands,
     parent: Entity,
     configuration: &Configuration,
     assets: &BotAssets,
-    data: Option<BotWheelExecutionData>,
+    data: Option<WheelExecutionData>,
 ) {
     let id = commands
         .spawn((
