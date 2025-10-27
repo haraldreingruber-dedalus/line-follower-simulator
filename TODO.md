@@ -10,7 +10,7 @@
 [❌] add transparent track path (sized as colliders, Z between floor and line)
 [❌] share track meshes (cloning components when spawning track)
 [❌] share track materials (like bot ones: put them in the same resource)
-[❌] fix camera panning
+[✔] fix camera panning
 [❌] camera keyboard controls
 [❌] VCR keyboard controls
 [❌] tune physics (torque, friction, masses...)
