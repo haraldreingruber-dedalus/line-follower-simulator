@@ -7,7 +7,7 @@ use bevy_egui::{
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::render::RapierDebugRenderPlugin;
-use egui_file_dialog::FileDialog;
+use egui_file_dialog::{DialogState, FileDialog};
 use egui_material_icons::icons::{
     ICON_ADD, ICON_CANCEL, ICON_CENTER_FOCUS_WEAK, ICON_CHECK, ICON_DELETE, ICON_EAST,
     ICON_EXIT_TO_APP, ICON_FAST_FORWARD, ICON_FAST_REWIND, ICON_HELP, ICON_NORTH, ICON_NORTH_EAST,
@@ -144,6 +144,8 @@ pub struct RunnerGuiState {
     logs: bool,
     period: u32,
     bot_with_pending_remove: Option<BotName>,
+    error_message: Option<String>,
+    help_open: bool,
 }
 
 impl RunnerGuiState {
@@ -171,6 +173,8 @@ impl RunnerGuiState {
             logs,
             period,
             bot_with_pending_remove: None,
+            error_message: None,
+            help_open: false,
         }
     }
 
@@ -210,7 +214,9 @@ impl RunnerGuiState {
                         materials,
                     );
                 }
-                Err(err) => error!("Error receiving new bot: {}", err),
+                Err(err) => {
+                    self.error_message = Some(err.to_string());
+                }
             }
         }
     }
@@ -233,11 +239,6 @@ fn runner_gui_update(
     let ctx = contexts.ctx_mut()?;
     let (mut po_camera, mut po_transform) = camera.single_mut()?;
 
-    if keyboard_input.just_released(KeyCode::KeyQ) || keyboard_input.just_released(KeyCode::Escape)
-    {
-        exit.write(AppExit::Success);
-    }
-
     if gui_state.play_active {
         gui_state.play_time_sec += time.delta_secs();
     }
@@ -250,8 +251,11 @@ fn runner_gui_update(
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let size = gui_state.base_text_size * 4.0;
-                if icon_button(ui, ICON_HELP, size).clicked() {
-                    println!("HELP!");
+                if icon_button(ui, ICON_HELP, size).clicked()
+                    || keyboard_input.just_pressed(KeyCode::Slash)
+                    || keyboard_input.just_pressed(KeyCode::F1)
+                {
+                    gui_state.help_open = true;
                 }
                 ui.separator();
 
@@ -332,6 +336,11 @@ fn runner_gui_update(
                 ui.add_space(size / 2.0);
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if icon_button(ui, ICON_EXIT_TO_APP, size).clicked()
+                        || keyboard_input.just_released(KeyCode::KeyQ)
+                    {
+                        exit.write(AppExit::Success);
+                    }
                     if icon_button(ui, ICON_ADD, size).clicked() {
                         gui_state.file_dialog.pick_file();
                     }
@@ -373,6 +382,10 @@ fn runner_gui_update(
                     &mut materials,
                 );
             });
+
+            let base_text_size = gui_state.base_text_size;
+            error_dialog(ui, &mut gui_state.error_message, base_text_size);
+            help_dialog(ui, &mut gui_state.help_open, base_text_size);
         });
 
     let cb_size = gui_state.base_text_size * 3.0;
@@ -447,6 +460,8 @@ struct TestGuiState {
     base_text_size: f32,
     pwm_fwd_cmd: i16,
     pwm_side_cmd: i16,
+    error_message: Option<String>,
+    help_open: bool,
 }
 
 impl Default for TestGuiState {
@@ -455,6 +470,8 @@ impl Default for TestGuiState {
             base_text_size: 8.0,
             pwm_fwd_cmd: PWM_MAX / 2,
             pwm_side_cmd: PWM_MAX / 2,
+            error_message: None,
+            help_open: false,
         }
     }
 }
@@ -471,11 +488,6 @@ fn test_gui_update(
     let ctx = contexts.ctx_mut()?;
     let (mut po_camera, mut po_transform) = camera.single_mut()?;
 
-    if keyboard_input.just_released(KeyCode::KeyQ) || keyboard_input.just_released(KeyCode::Escape)
-    {
-        exit.write(AppExit::Success);
-    }
-
     egui::TopBottomPanel::bottom("bottom_panel")
         .resizable(false)
         .default_height(gui_state.base_text_size * 1.8)
@@ -483,8 +495,11 @@ fn test_gui_update(
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let size = gui_state.base_text_size * 4.0;
-                if icon_button(ui, ICON_HELP, size).clicked() {
-                    println!("HELP!");
+                if icon_button(ui, ICON_HELP, size).clicked()
+                    || keyboard_input.just_pressed(KeyCode::Slash)
+                    || keyboard_input.just_pressed(KeyCode::F1)
+                {
+                    gui_state.help_open = true;
                 }
                 ui.separator();
 
@@ -495,6 +510,11 @@ fn test_gui_update(
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if icon_button(ui, ICON_EXIT_TO_APP, size).clicked()
+                        || keyboard_input.just_released(KeyCode::KeyQ)
+                    {
+                        exit.write(AppExit::Success);
+                    }
                     if icon_button(ui, ICON_ZOOM_IN, size).clicked() {
                         gui_state.base_text_size += 1.0;
                         gui_state.base_text_size = gui_state.base_text_size.max(3.0);
@@ -504,6 +524,10 @@ fn test_gui_update(
                     }
                 });
             });
+
+            let base_text_size = gui_state.base_text_size;
+            error_dialog(ui, &mut gui_state.error_message, base_text_size);
+            help_dialog(ui, &mut gui_state.help_open, base_text_size);
         });
 
     let cb_size = gui_state.base_text_size * 3.0;
@@ -687,6 +711,62 @@ fn process_new_bot(
             .send(run_bot_from_file(input, output, logs, period, track))
             .ok();
     });
+}
+
+fn error_dialog(ui: &mut Ui, error_message: &mut Option<String>, base_text_size: f32) {
+    let close = if let Some(msg) = &error_message {
+        let modal = Modal::new(Id::new("Modal Error")).show(ui.ctx(), |ui| {
+            ui.vertical_centered(|ui| {
+                rl(ui, "Error executing robot", base_text_size * 3.0);
+
+                ui.add_space(8.0);
+
+                rl(ui, msg, base_text_size * 2.0);
+
+                ui.add_space(8.0);
+
+                if icon_button(ui, ICON_CHECK, base_text_size * 4.0).clicked() {
+                    ui.close();
+                }
+            })
+        });
+
+        modal.should_close()
+    } else {
+        false
+    };
+
+    if close {
+        *error_message = None;
+    }
+}
+
+fn help_dialog(ui: &mut Ui, help_open: &mut bool, base_text_size: f32) {
+    let close = if *help_open {
+        let modal = Modal::new(Id::new("Modal Error")).show(ui.ctx(), |ui| {
+            ui.vertical_centered(|ui| {
+                rl(ui, "Help", base_text_size * 3.0);
+
+                ui.add_space(8.0);
+
+                rl(ui, "HELP!", base_text_size * 1.5);
+
+                ui.add_space(8.0);
+
+                if icon_button(ui, ICON_CHECK, base_text_size * 4.0).clicked() {
+                    ui.close();
+                }
+            })
+        });
+
+        modal.should_close()
+    } else {
+        false
+    };
+
+    if close {
+        *help_open = false;
+    }
 }
 
 fn ask_bot_remove(ui: &mut Ui, gui_state: &mut RunnerGuiState) -> Option<bool> {
