@@ -7,11 +7,10 @@ use bevy_rapier3d::prelude::*;
 use crate::utils::{EntityFeatures, Side, rotate_vec2};
 
 const FLOOR_HEIGHT: f32 = 0.01;
-const FLOOR_SIZE: f32 = 20.0;
 pub const TRACK_HALF_WIDTH: f32 = 0.1;
+pub const LINE_HALF_WIDTH: f32 = 0.01;
 const TRACK_HALF_HEIGHT: f32 = 0.001;
 const TRACK_TIPS_LENGTH: f32 = 0.5;
-const TRACK_Z_OFFSET: f32 = -TRACK_HALF_HEIGHT - FLOOR_HEIGHT;
 const TRACK_CIRCLE_SEGMENTS_PER_PI: usize = 40;
 
 /// Generates a curved "track turn" collider (an arc section)
@@ -391,11 +390,11 @@ impl TrackSegment {
         match *self {
             TrackSegment::Start | TrackSegment::End => {
                 // Collider::cuboid(TRACK_HALF_WIDTH, TRACK_TIPS_LENGTH / 2.0, TRACK_HALF_HEIGHT)
-                quad_mesh(0.1, 0.1)
+                quad_mesh(LINE_HALF_WIDTH * 2.0, TRACK_TIPS_LENGTH)
             }
             TrackSegment::Straight(data) => {
                 // Collider::cuboid(TRACK_HALF_WIDTH, data.length / 2.0, TRACK_HALF_HEIGHT)
-                quad_mesh(0.1, 0.1)
+                quad_mesh(LINE_HALF_WIDTH * 2.0, data.length)
             }
             TrackSegment::NinetyDegTurn(data) => {
                 // let hl: f32 = (data.line_half_length + TRACK_HALF_WIDTH) / 2.0;
@@ -438,7 +437,7 @@ impl TrackSegment {
                 origin.translate_in_direction(Vec2::NEG_X * data.radius * data.side.sign())
             }
         };
-        Transform::from_translation(transform_origin.position.extend(TRACK_Z_OFFSET)).with_rotation(
+        Transform::from_translation(transform_origin.position.extend(0.0)).with_rotation(
             Quat::from_rotation_z(transform_origin.direction.to_radians()),
         )
     }
@@ -468,28 +467,32 @@ impl TrackSegment {
 
     pub fn spawn(
         &self,
-        parent: Entity,
+        path_parent: Entity,
+        line_parent: Entity,
         origin: SegmentTransform,
         features: EntityFeatures,
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<StandardMaterial>,
     ) {
-        let entity = commands
-            .spawn((*self, ChildOf(parent), self.transform(origin)))
-            .id();
         if features.has_physics() {
-            commands.entity(entity).insert((
+            commands.spawn((
+                *self,
+                ChildOf(path_parent),
+                self.transform(origin),
                 self.collider(),
                 RigidBody::Fixed,
                 Friction {
-                    coefficient: 0.5,
-                    combine_rule: CoefficientCombineRule::Average,
+                    coefficient: 0.0,
+                    combine_rule: CoefficientCombineRule::Min,
                 },
             ));
         }
         if features.has_visualization() {
-            commands.entity(entity).insert((
+            commands.spawn((
+                *self,
+                ChildOf(line_parent),
+                self.transform(origin),
                 Mesh3d(meshes.add(self.mesh())),
                 MeshMaterial3d(materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0))),
             ));
@@ -499,21 +502,28 @@ impl TrackSegment {
 
 #[derive(Clone, Resource)]
 pub struct Track {
+    size: Vec2,
     origin: SegmentTransform,
     segments: Vec<TrackSegment>,
 }
 
 impl Track {
-    pub fn new(segments: Vec<TrackSegment>) -> Self {
+    pub fn new(size: Vec2, origin: SegmentTransform, segments: Vec<TrackSegment>) -> Self {
+        let origin = SegmentTransform {
+            position: origin.position + Vec2::NEG_Y * TRACK_TIPS_LENGTH / 2.0,
+            direction: origin.direction,
+        };
         Self {
-            origin: SegmentTransform::new(Vec2::NEG_Y * TRACK_TIPS_LENGTH / 2.0, Angle::ZERO),
+            size,
+            origin,
             segments,
         }
     }
 
     pub fn spawn_bundles(
         &self,
-        parent: Entity,
+        path_parent: Entity,
+        line_parent: Entity,
         features: EntityFeatures,
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
@@ -523,7 +533,8 @@ impl Track {
 
         for segment in &self.segments {
             segment.spawn(
-                parent,
+                path_parent,
+                line_parent,
                 segment_origin,
                 features,
                 commands,
@@ -537,23 +548,68 @@ impl Track {
 
 pub fn setup_track(
     commands: &mut Commands,
-    track_parent: Entity,
+    track_root: Entity,
     features: EntityFeatures,
     track: &Track,
+    is_bottom: bool,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
+    let bottom_x = -track.origin.position.x;
+    let bottom_y = -track.origin.position.y;
+    let bottom_rot = Quat::from_rotation_z(track.origin.direction.to_radians());
+
+    let track_path_root = commands
+        .spawn((
+            Transform::from_xyz(bottom_x, bottom_y, -0.001).with_rotation(bottom_rot),
+            ChildOf(track_root),
+        ))
+        .id();
+    let track_floor_root = commands
+        .spawn((
+            Transform::from_xyz(bottom_x, bottom_y, -FLOOR_HEIGHT / 2.0).with_rotation(bottom_rot),
+            ChildOf(track_root),
+        ))
+        .id();
+    let track_line_root = commands
+        .spawn((
+            Transform::from_xyz(bottom_x, bottom_y, 0.001).with_rotation(bottom_rot),
+            ChildOf(track_root),
+        ))
+        .id();
+
     if features.has_physics() {
-        // Static floor
-        commands.spawn((
-            Collider::cuboid(FLOOR_SIZE / 2.0, FLOOR_SIZE / 2.0, FLOOR_HEIGHT / 2.0),
+        commands.entity(track_floor_root).insert((
+            Collider::cuboid(track.size.x / 2.0, track.size.y / 2.0, FLOOR_HEIGHT / 2.0),
             RigidBody::Fixed,
             Friction::new(0.5),
-            Transform::from_xyz(0.0, 0.0, -FLOOR_HEIGHT / 2.0),
         ));
     }
 
-    track.spawn_bundles(track_parent, features, commands, meshes, materials);
+    if features.has_visualization() {
+        let mesh = meshes.add(Cuboid::from_size(Vec3::new(
+            track.size.x,
+            track.size.y,
+            FLOOR_HEIGHT,
+        )));
+        let material = if is_bottom {
+            materials.add(Color::srgb(0.9, 0.9, 0.9))
+        } else {
+            materials.add(Color::srgba(0.9, 0.9, 0.9, 0.1))
+        };
+        commands
+            .entity(track_floor_root)
+            .insert((Mesh3d(mesh), MeshMaterial3d(material)));
+    }
+
+    track.spawn_bundles(
+        track_path_root,
+        track_line_root,
+        features,
+        commands,
+        meshes,
+        materials,
+    );
 }
 
 pub struct TrackPlugin {
@@ -575,12 +631,13 @@ impl Plugin for TrackPlugin {
                   track: Res<Track>,
                   mut meshes: ResMut<Assets<Mesh>>,
                   mut materials: ResMut<Assets<StandardMaterial>>| {
-                let track_parent = commands.spawn(Transform::default()).id();
+                let track_root = commands.spawn(Transform::default()).id();
                 setup_track(
                     &mut commands,
-                    track_parent,
+                    track_root,
                     features,
                     &track,
+                    true,
                     &mut meshes,
                     &mut materials,
                 )

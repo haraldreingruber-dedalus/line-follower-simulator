@@ -43,24 +43,26 @@ pub fn spawn_bot_visualization(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
-    let vis_component = BotVisualization {
+    let root_component = BotVisualization {
         config: configuration.clone(),
         bot_number,
     };
-    let vis_transform = vis_component.build_transform();
-    let vis = commands.spawn((vis_component, vis_transform)).id();
+    let root_transform = root_component.build_transform();
+    let track_root = commands.spawn((root_component, root_transform)).id();
+
     setup_track(
         commands,
-        vis,
+        track_root,
         EntityFeatures::Visualization,
         track,
+        false,
         meshes,
         materials,
     );
 
     let bot = spawn_bot_body(
         commands,
-        vis,
+        track_root,
         &configuration,
         bot_assets,
         Some(data.body_data),

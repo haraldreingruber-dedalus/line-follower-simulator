@@ -1,9 +1,12 @@
 use app_builder::VisualizerData;
-use bevy::text::cosmic_text::Angle;
+use bevy::{
+    math::{Vec2, VectorSpace},
+    text::cosmic_text::Angle,
+};
 use clap::{self, Parser, Subcommand};
 use executor::wasm_bindings::exports::robot::{Color, Configuration};
 use runner::run_bot_from_file;
-use track::{Track, TrackSegment};
+use track::{SegmentTransform, Track, TrackSegment};
 use utils::Side;
 
 use crate::app_builder::create_app;
@@ -79,15 +82,19 @@ enum Command {
 fn main() -> executor::wasmtime::Result<()> {
     let args = Args::parse();
 
-    let track = Track::new(vec![
-        TrackSegment::start(),
-        TrackSegment::straight(2.0),
-        TrackSegment::ninety_deg_turn(0.5, Side::Right),
-        TrackSegment::cyrcle_turn(1.0, Angle::from_degrees(120.0), Side::Left),
-        TrackSegment::ninety_deg_turn(1.0, Side::Left),
-        TrackSegment::cyrcle_turn(2.0, Angle::from_degrees(60.0), Side::Right),
-        TrackSegment::end(),
-    ]);
+    let track = Track::new(
+        Vec2::new(5.0, 6.5),
+        SegmentTransform::new(Vec2::new(0.5, -2.3), Angle::from_degrees(0.0)),
+        vec![
+            TrackSegment::start(),
+            TrackSegment::straight(2.0),
+            TrackSegment::ninety_deg_turn(0.5, Side::Right),
+            TrackSegment::cyrcle_turn(1.0, Angle::from_degrees(120.0), Side::Left),
+            TrackSegment::ninety_deg_turn(1.0, Side::Left),
+            TrackSegment::cyrcle_turn(2.0, Angle::from_degrees(60.0), Side::Right),
+            TrackSegment::end(),
+        ],
+    );
 
     match args.cmd {
         Command::Run {
