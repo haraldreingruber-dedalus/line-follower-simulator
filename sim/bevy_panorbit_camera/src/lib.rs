@@ -669,7 +669,7 @@ fn pan_orbit_camera(
                 }
                 // Translate by local axes
                 let right = transform.rotation * pan_orbit.axis[0] * -pan.x;
-                let up = transform.rotation * pan_orbit.axis[1] * pan.y;
+                let up = transform.rotation * pan_orbit.axis[2] * -pan.y;
                 let translation = (right + up) * multiplier;
                 pan_orbit.target_focus += translation;
                 has_moved = true;
