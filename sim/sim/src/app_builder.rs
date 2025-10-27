@@ -176,7 +176,11 @@ pub fn create_app(app_type: AppType, track: Track, step_period_us: u32) -> App {
     }
 
     app.add_plugins((
-        BotPlugin::new(app_type.entity_features(), app_type.configuration()),
+        BotPlugin::new(
+            app_type.entity_features(),
+            step_period_us,
+            app_type.configuration(),
+        ),
         TrackPlugin::new(app_type.entity_features()),
     ));
 

@@ -14,15 +14,24 @@ fn store_data(
     exec_data.right_wheel_data.steps.push(motor_angles.right);
 }
 
-pub struct StoreExecDataPlugin;
+pub struct StoreExecDataPlugin {
+    step_period_us: u32,
+}
+
+impl StoreExecDataPlugin {
+    pub fn new(step_period_us: u32) -> Self {
+        Self { step_period_us }
+    }
+}
 
 impl Plugin for StoreExecDataPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ExecutionData::default()).add_systems(
-            RunFixedMainLoop,
-            (store_data)
-                .chain()
-                .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
-        );
+        app.insert_resource(ExecutionData::empty(self.step_period_us))
+            .add_systems(
+                RunFixedMainLoop,
+                (store_data)
+                    .chain()
+                    .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+            );
     }
 }

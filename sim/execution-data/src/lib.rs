@@ -23,7 +23,7 @@ impl BodyExecutionData {
         if self.steps.is_empty() {
             Transform::default()
         } else {
-            let index = ((time_secs * 1_000_000.0 / self.period as f32)
+            let index = ((time_secs * 1_000_000.0 / (self.period as f32))
                 .floor()
                 .max(0.0) as usize)
                 .min(self.steps.len() - 1);
@@ -61,7 +61,7 @@ impl WheelExecutionData {
     }
 }
 
-#[derive(Clone, Resource, Default)]
+#[derive(Clone, Resource)]
 pub struct ExecutionData {
     pub body_data: BodyExecutionData,
     pub left_wheel_data: WheelExecutionData,

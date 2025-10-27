@@ -18,6 +18,7 @@ use crate::{
 
 pub struct BotPlugin {
     features: EntityFeatures,
+    step_period_us: u32,
     configuration: Option<Configuration>,
 }
 
@@ -33,9 +34,14 @@ impl BotConfigurationResource {
 }
 
 impl BotPlugin {
-    pub fn new(features: EntityFeatures, configuration: Option<Configuration>) -> Self {
+    pub fn new(
+        features: EntityFeatures,
+        step_period_us: u32,
+        configuration: Option<Configuration>,
+    ) -> Self {
         Self {
             features,
+            step_period_us,
             configuration,
         }
     }
@@ -53,7 +59,11 @@ impl Plugin for BotPlugin {
                 app.add_systems(Startup, setup_bot_entities);
             }
             app.add_systems(Startup, setup_bot_model.after(setup_bot_entities));
-            app.add_plugins((MotorsModelPlugin, SensorsModelPlugin, StoreExecDataPlugin));
+            app.add_plugins((
+                MotorsModelPlugin,
+                SensorsModelPlugin,
+                StoreExecDataPlugin::new(self.step_period_us),
+            ));
             if self.features.has_visualization() {
                 let configuration = self
                     .configuration
