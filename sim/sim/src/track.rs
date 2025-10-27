@@ -561,7 +561,7 @@ pub fn setup_track(
 
     let track_path_root = commands
         .spawn((
-            Transform::from_xyz(bottom_x, bottom_y, -0.001).with_rotation(bottom_rot),
+            Transform::from_xyz(bottom_x, bottom_y, -0.005).with_rotation(bottom_rot),
             ChildOf(track_root),
         ))
         .id();
