@@ -121,16 +121,9 @@ fn apply_motors_pwm(
         let torque_vec = -wheel_axle * torque;
         ext_impulse.torque = torque_vec;
         body_torque -= torque_vec;
-
-        println!(
-            "Wheel {:?} torque {:.10} vel {:.2}",
-            wheel.side, torque, ang_vel
-        );
     }
 
-    // #FIXME: only works along positive Y axis, not negative...
     motors_ext_force.torque = body_torque;
-    println!("Body {:.10}", body_torque);
 }
 
 pub struct MotorsModelPlugin;
