@@ -1,6 +1,6 @@
 [✔] spawn track and bot
 [✔] correctly position bot wheels
-[❌] implement proper bot meshes
+[✔] implement proper bot meshes
 [❌] implement missing track meshes
 [❌] implement track size, sync track center and camera target
 [❌] implement track selection (maybe also loading)
