@@ -181,7 +181,7 @@ fn main() -> executor::wasmtime::Result<()> {
                 color_main: Color { r: 0, g: 0, b: 255 },
                 color_secondary: Color { r: 255, g: 0, b: 0 },
                 width_axle: 100.0,
-                length_front: 200.0,
+                length_front: 100.0,
                 length_back: 20.0,
                 clearing_back: 20.0,
                 wheel_diameter: 20.0,
