@@ -1019,7 +1019,7 @@ fn setup_camera(mut commands: Commands) {
         },
         Transform {
             translation: Vec3::new(0.0, 0.0, 10.0),
-            rotation: Quat::from_euler(EulerRot::XYZ, FRAC_PI_4, 0.0, 0.0),
+            rotation: Quat::from_axis_angle(Vec3::new(1.0, 1.0, 0.0), FRAC_PI_4),
             ..default()
         },
     ));
