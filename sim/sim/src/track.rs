@@ -648,19 +648,14 @@ pub fn setup_track(
     }
 
     if features.has_visualization() {
-        let mesh = meshes.add(Cuboid::from_size(Vec3::new(
-            track.size.x,
-            track.size.y,
-            FLOOR_HEIGHT,
-        )));
-        let material = if is_bottom {
-            materials.add(Color::srgb(0.9, 0.9, 0.9))
-        } else {
-            materials.add(Color::srgba(0.9, 0.9, 0.9, 0.1))
-        };
-        commands
-            .entity(track_floor_root)
-            .insert((Mesh3d(mesh), MeshMaterial3d(material)));
+        let mesh = meshes.add(quad_mesh(track.size.x, track.size.y));
+        let material = materials.add(Color::srgba(1.0, 1.0, 1.0, 0.1));
+        commands.spawn((
+            Transform::from_xyz(bottom_x, bottom_y, 0.0).with_rotation(bottom_rot),
+            ChildOf(track_root),
+            Mesh3d(mesh),
+            MeshMaterial3d(material),
+        ));
     }
 
     track.spawn_bundles(
