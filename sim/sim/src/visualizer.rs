@@ -65,6 +65,7 @@ pub fn spawn_bot_visualization(
         track_root,
         &configuration,
         bot_assets,
+        materials,
         Some(data.body_data),
     );
     spawn_bot_wheel(
@@ -72,6 +73,7 @@ pub fn spawn_bot_visualization(
         bot,
         &configuration,
         bot_assets,
+        materials,
         crate::utils::Side::Left,
         Some(data.left_wheel_data),
     );
@@ -80,6 +82,7 @@ pub fn spawn_bot_visualization(
         bot,
         &configuration,
         bot_assets,
+        materials,
         crate::utils::Side::Right,
         Some(data.right_wheel_data),
     );

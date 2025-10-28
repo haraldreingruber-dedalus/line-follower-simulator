@@ -9,11 +9,9 @@ use crate::app_builder::BotConfigWrapper;
 
 const BOT_COLLISION_GROUP: Group = Group::GROUP_1;
 
-const BOT_BODY_WIDTH: f32 = 0.09;
 const BOT_BODY_HEIGHT: f32 = 0.01;
-
 const BOT_BUMPER_DIAMETER: f32 = BOT_BODY_HEIGHT / 2.0;
-const BOT_BUMPER_WIDTH: f32 = BOT_BODY_WIDTH / 2.0;
+const BOT_BODY_TO_WHEEL: f32 = 0.003;
 
 const BOT_BODY_WEIGHT: f32 = 0.1;
 const BOT_WHEEL_WEIGHT: f32 = 0.02;
@@ -45,9 +43,10 @@ pub fn setup_bot_model(
     // Height of line sensors from the ground (in mm, from 1 to wheels radius)
     let front_sensors_height: f32 = config.front_sensors_height / 1000.0;
 
-    let body_world = Vec3::new(
+    let body_world = Vec3::new(0.0, 0.0, wheel_diameter / 2.0);
+
+    let bodypart_body = Vec3::new(
         0.0,
-        // (length_front - length_back) / 2.0,
         0.0,
         clearing_back + (BOT_BODY_HEIGHT * 0.5) + BOT_BUMPER_DIAMETER,
     );
@@ -58,25 +57,29 @@ pub fn setup_bot_model(
 
     let body_front_length = length_back / 2.0;
 
+    let body_width = width_axle - 2.0 * BOT_BODY_TO_WHEEL;
+    let bumper_width = body_width / 2.0;
+
     // Static body with motors
     let body = body_query.single().unwrap();
     commands.entity(body).insert((
         Collider::compound(vec![
             (
-                Vec3::ZERO,
+                bodypart_body - body_world,
                 Quat::IDENTITY,
                 Collider::cuboid(
-                    BOT_BODY_WIDTH * 0.5,
+                    body_width * 0.5,
                     // (length_front + length_back) * 0.5,
                     length_back,
                     BOT_BODY_HEIGHT * 0.5,
                 ),
             ),
             (
-                Vec3::new(0.0, length_front - body_front_length / 2.0, 0.0),
+                Vec3::new(0.0, length_front - body_front_length / 2.0, 0.0) + bodypart_body
+                    - body_world,
                 Quat::IDENTITY,
                 Collider::cuboid(
-                    BOT_BODY_WIDTH * 0.5,
+                    body_width * 0.5,
                     body_front_length * 0.5,
                     BOT_BODY_HEIGHT * 0.5,
                 ),
@@ -84,12 +87,12 @@ pub fn setup_bot_model(
             (
                 front_bumper_world - body_world,
                 Quat::IDENTITY,
-                Collider::capsule_x(BOT_BUMPER_WIDTH / 2.0, BOT_BUMPER_DIAMETER / 2.0),
+                Collider::capsule_x(bumper_width / 2.0, BOT_BUMPER_DIAMETER / 2.0),
             ),
             (
                 back_bumper_world - body_world,
                 Quat::IDENTITY,
-                Collider::capsule_x(BOT_BUMPER_WIDTH / 2.0, BOT_BUMPER_DIAMETER / 2.0),
+                Collider::capsule_x(bumper_width / 2.0, BOT_BUMPER_DIAMETER / 2.0),
             ),
         ]),
         RigidBody::Dynamic,
@@ -110,11 +113,7 @@ pub fn setup_bot_model(
     // Wheels
     for (entity, wheel) in wheels_query {
         let side = wheel.side;
-        let wheel_world = Vec3::new(
-            (width_axle + wheel_diameter) / 2.0 * -side.sign(),
-            0.0,
-            wheel_diameter / 2.0,
-        );
+        let wheel_world = Vec3::new(width_axle / 2.0 * -side.sign(), 0.0, wheel_diameter / 2.0);
 
         commands.entity(entity).insert((
             Collider::ball(wheel_diameter / 2.0),

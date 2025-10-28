@@ -11,13 +11,12 @@ use super::motors::Wheel;
 use super::{BotBodyMarker, BotConfigurationResource};
 
 pub struct BotMeshes {
-    pub body: Handle<Mesh>,
-    pub wheel: Handle<Mesh>,
+    pub cube: Handle<Mesh>,
+    pub cylinder: Handle<Mesh>,
 }
 
 pub struct BotMaterials {
-    pub body: Handle<StandardMaterial>,
-    pub wheel: Handle<StandardMaterial>,
+    pub black: Handle<StandardMaterial>,
 }
 
 #[derive(Resource)]
@@ -31,24 +30,49 @@ pub fn setup_bot_assets(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let body_mesh = meshes.add(Cuboid::from_size(Vec3::ONE / 2.0));
-    let body_material = materials.add(Color::srgb(0.8, 0.2, 0.2));
+    let cube_mesh = meshes.add(Cuboid::from_size(Vec3::ONE));
+    let cylinder_mesh = meshes.add(Cylinder::new(0.5, 1.0));
 
-    let wheel_mesh = meshes.add(Cylinder::new(0.5, 1.0));
-    let wheel_material = materials.add(Color::srgb(0.2, 0.8, 0.2));
+    let black_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
 
     let assets = BotAssets {
         meshes: BotMeshes {
-            body: body_mesh.clone(),
-            wheel: wheel_mesh.clone(),
+            cube: cube_mesh.clone(),
+            cylinder: cylinder_mesh.clone(),
         },
         materials: BotMaterials {
-            body: body_material.clone(),
-            wheel: wheel_material.clone(),
+            black: black_material.clone(),
         },
     };
 
     commands.insert_resource(assets);
+}
+
+trait SetupColorMaterials {
+    fn setup_color_materials(
+        &self,
+        materials: &mut Assets<StandardMaterial>,
+    ) -> (Handle<StandardMaterial>, Handle<StandardMaterial>);
+}
+
+impl SetupColorMaterials for Configuration {
+    fn setup_color_materials(
+        &self,
+        materials: &mut Assets<StandardMaterial>,
+    ) -> (Handle<StandardMaterial>, Handle<StandardMaterial>) {
+        let color_main = Color::srgb(
+            self.color_main.r as f32 / u8::max_value() as f32,
+            self.color_main.g as f32 / u8::max_value() as f32,
+            self.color_main.b as f32 / u8::max_value() as f32,
+        );
+        let color_secondary = Color::srgb(
+            self.color_secondary.r as f32 / u8::max_value() as f32,
+            self.color_secondary.g as f32 / u8::max_value() as f32,
+            self.color_secondary.b as f32 / u8::max_value() as f32,
+        );
+
+        (materials.add(color_main), materials.add(color_secondary))
+    }
 }
 
 pub fn spawn_bot_body(
@@ -56,6 +80,7 @@ pub fn spawn_bot_body(
     parent: Entity,
     configuration: &Configuration,
     assets: &BotAssets,
+    materials: &mut Assets<StandardMaterial>,
     data: Option<BodyExecutionData>,
 ) -> Entity {
     let id = commands.spawn((ChildOf(parent), Transform::default())).id();
@@ -63,11 +88,45 @@ pub fn spawn_bot_body(
         commands.entity(id).insert(data);
     }
 
+    let (color_main_material, color_secondary_material) =
+        configuration.setup_color_materials(materials);
+
+    let wheel_diameter = configuration.wheel_diameter / 1000.0;
+
+    const BODY_TO_WHEEL: f32 = 0.005;
+    let body_width = configuration.width_axle / 1000.0 - 2.0 * BODY_TO_WHEEL;
+
     commands.spawn((
         ChildOf(id),
-        Mesh3d(assets.meshes.body.clone()),
-        MeshMaterial3d(assets.materials.body.clone()),
-        Transform::from_scale(Vec3::new(0.01, 0.01, 0.01)),
+        Mesh3d(assets.meshes.cube.clone()),
+        MeshMaterial3d(color_main_material.clone()),
+        Transform::from_scale(Vec3::new(
+            body_width,
+            wheel_diameter * 2.0,
+            wheel_diameter / 2.0,
+        )),
+    ));
+
+    commands.spawn((
+        ChildOf(id),
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(color_main_material.clone()),
+        Transform::from_scale(Vec3::new(
+            wheel_diameter * 0.7,
+            body_width,
+            wheel_diameter * 0.7,
+        ))
+        .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
+    ));
+
+    // axle
+    let axle_d = 0.003;
+    commands.spawn((
+        ChildOf(id),
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(assets.materials.black.clone()),
+        Transform::from_scale(Vec3::new(axle_d, configuration.width_axle / 1000.0, axle_d))
+            .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
     ));
     id
 }
@@ -77,15 +136,18 @@ pub fn spawn_bot_wheel(
     parent: Entity,
     configuration: &Configuration,
     assets: &BotAssets,
+    materials: &mut Assets<StandardMaterial>,
     side: Side,
     data: Option<WheelExecutionData>,
 ) {
+    let wheel_world = Vec3::new((configuration.width_axle / 2000.0) * -side.sign(), 0.0, 0.0);
+
+    let (_, color_secondary_material) = configuration.setup_color_materials(materials);
+
     let transform = data
         .as_ref()
         .map(|data| {
-            let t = Transform::from_translation(
-                data.side.axis_direction() * configuration.width_axle / 2000.0,
-            );
+            let t = Transform::from_translation(wheel_world);
             println!("wheel transform {} {:?}", data.side, t);
             t
         })
@@ -98,53 +160,35 @@ pub fn spawn_bot_wheel(
     }
 
     let wheel_d = configuration.wheel_diameter / 1000.0;
-    let wheel_w = wheel_d * 3.0 / 2.0;
+    let wheel_w = 0.02; // wheel_d * 3.0 / 2.0;
 
     // cylinder mesh
     commands.spawn((
         ChildOf(id),
-        Mesh3d(assets.meshes.wheel.clone()),
-        MeshMaterial3d(assets.materials.wheel.clone()),
-        Transform::from_translation(Vec3::X * -side.sign() * (wheel_w - wheel_d) / 2.0)
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(color_secondary_material.clone()),
+        Transform::from_translation(Vec3::X * -side.sign() * wheel_w / 2.0)
             .with_scale(Vec3::new(wheel_d, wheel_w, wheel_d))
             .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
     ));
 
-    // axle
-    let axle_d = 0.003;
-    let axle_out = 0.001;
-    commands.spawn((
-        ChildOf(id),
-        Mesh3d(assets.meshes.wheel.clone()),
-        MeshMaterial3d(assets.materials.body.clone()),
-        Transform::from_scale(Vec3::new(
-            axle_d,
-            2.0 * wheel_w - wheel_d + 2.0 * axle_out,
-            axle_d,
-        ))
-        .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
-    ));
-
     // ext drawing
-    let ext_cyl_tranform = Vec3::new(wheel_d / 3.5, axle_out / 2.0, wheel_d / 2.0);
+    let drawing_out = 0.001;
+    let ext_cyl_tranform = Vec3::new(wheel_d / 3.5, drawing_out / 2.0, wheel_d / 2.0);
     commands.spawn((
         ChildOf(id),
-        Mesh3d(assets.meshes.wheel.clone()),
-        MeshMaterial3d(assets.materials.body.clone()),
-        Transform::from_translation(Vec3::new(
-            -side.sign() * (wheel_w - wheel_d / 2.0),
-            wheel_d / 4.0,
-            0.0,
-        ))
-        .with_scale(ext_cyl_tranform)
-        .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(assets.materials.black.clone()),
+        Transform::from_translation(Vec3::new(-side.sign() * wheel_w, wheel_d / 4.0, 0.0))
+            .with_scale(ext_cyl_tranform)
+            .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
     ));
     commands.spawn((
         ChildOf(id),
-        Mesh3d(assets.meshes.wheel.clone()),
-        MeshMaterial3d(assets.materials.body.clone()),
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(assets.materials.black.clone()),
         Transform::from_translation(Vec3::new(
-            -side.sign() * (wheel_w - wheel_d / 2.0),
+            -side.sign() * wheel_w,
             -(wheel_d / 4.0) * FRAC_PI_3.cos(),
             -(wheel_d / 4.0) * FRAC_PI_3.sin(),
         ))
@@ -153,10 +197,10 @@ pub fn spawn_bot_wheel(
     ));
     commands.spawn((
         ChildOf(id),
-        Mesh3d(assets.meshes.wheel.clone()),
-        MeshMaterial3d(assets.materials.body.clone()),
+        Mesh3d(assets.meshes.cylinder.clone()),
+        MeshMaterial3d(assets.materials.black.clone()),
         Transform::from_translation(Vec3::new(
-            -side.sign() * (wheel_w - wheel_d / 2.0),
+            -side.sign() * wheel_w,
             -(wheel_d / 4.0) * FRAC_PI_3.cos(),
             (wheel_d / 4.0) * FRAC_PI_3.sin(),
         ))
@@ -171,13 +215,22 @@ pub fn setup_test_bot_visualizer(
     configuration: Res<BotConfigurationResource>,
     body_query: Query<Entity, With<BotBodyMarker>>,
     wheels_query: Query<(Entity, &Wheel)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let cfg = configuration.cfg();
 
     let body = body_query.single().unwrap();
-    spawn_bot_body(&mut commands, body, &cfg, &assets, None);
+    spawn_bot_body(&mut commands, body, &cfg, &assets, &mut materials, None);
 
     for (wheel_id, wheel) in wheels_query.iter() {
-        spawn_bot_wheel(&mut commands, wheel_id, &cfg, &assets, wheel.side, None);
+        spawn_bot_wheel(
+            &mut commands,
+            wheel_id,
+            &cfg,
+            &assets,
+            &mut materials,
+            wheel.side,
+            None,
+        );
     }
 }
