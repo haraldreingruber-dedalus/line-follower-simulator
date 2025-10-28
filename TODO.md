@@ -3,7 +3,7 @@
 [✔] implement proper bot meshes
 [✔] implement missing track meshes
 [✔] implement track size, sync track center and camera target
-[❌] implement track selection (maybe also loading)
+[✔] implement track selection (maybe also loading)
 [✔] make track meshes visible from both sides
 [✔] add proper (single) opaque track floor
 [✔] add transparent track floor
@@ -19,6 +19,3 @@
 [✔] implement bot end and out conditions
 [✔] implement bot ranking
 [❌] implement autorun for server
-
-[❌] discuss and implement test bots
-[❌] discuss and write documentation
