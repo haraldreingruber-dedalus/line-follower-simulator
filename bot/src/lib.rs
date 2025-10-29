@@ -1,9 +1,11 @@
 pub mod async_event_loop;
+pub mod examples;
 #[allow(warnings)]
 pub mod line_follower_robot;
 pub mod value_ext;
 
 use async_event_loop::{FutureHandleExt, pin_boxed};
+use examples::toy::toy_run;
 use line_follower_robot::devices::{
     DeviceOperation, device_operation_async, device_operation_blocking, poll_loop, set_motors_power,
 };
@@ -19,11 +21,11 @@ impl Guest for Component {
             name: "Liner".to_string(),
             color_main: Color { r: 255, g: 0, b: 0 },
             color_secondary: Color { r: 0, g: 255, b: 0 },
-            width_axle: 200.0,
-            length_front: 300.0,
+            width_axle: 100.0,
+            length_front: 100.0,
             length_back: 20.0,
             clearing_back: 3.0,
-            wheel_diameter: 15.0,
+            wheel_diameter: 25.0,
             gear_ratio_num: 1,
             gear_ratio_den: 20,
             front_sensors_spacing: 4.0,
@@ -32,8 +34,9 @@ impl Guest for Component {
     }
 
     fn run() -> () {
+        toy_run();
         //simple_blocking_run();
-        async_event_loop::run(pin_boxed(simple_async_run()));
+        //async_event_loop::run(pin_boxed(simple_async_run()));
     }
 }
 
