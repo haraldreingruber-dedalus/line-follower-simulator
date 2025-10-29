@@ -318,10 +318,11 @@ pub fn spawn_bot_wheel(
 
     let (_, color_secondary_material) = configuration.setup_color_materials(materials);
 
-    let transform = data
-        .as_ref()
-        .map(|data| Transform::from_translation(wheel_world))
-        .unwrap_or_default();
+    let transform = if data.is_some() {
+        Transform::from_translation(wheel_world)
+    } else {
+        Transform::default()
+    };
 
     let id = commands.spawn((ChildOf(parent), transform)).id();
 
