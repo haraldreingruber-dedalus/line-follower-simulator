@@ -1,7 +1,4 @@
-use bevy::{
-    app::{App, AppExit, FixedMain, FixedUpdate, Main, Update},
-    transform::TransformSystem,
-};
+use bevy::app::{App, AppExit, FixedMain, Main};
 use execution_data::{
     BodyExecutionData, BotPhysicalPosition, ExecutionData, MotorDriversDutyCycles, SensorsData,
     WheelExecutionData,
@@ -9,7 +6,7 @@ use execution_data::{
 use executor::{wasm_bindings::exports::robot::Configuration, wasm_executor, wasmtime};
 
 use crate::{
-    app_builder::{self, FixedCounter, create_app},
+    app_builder::{self, create_app},
     track::Track,
 };
 
@@ -39,39 +36,11 @@ impl AppWrapper {
         *res = dc;
     }
 
-    pub fn current_app_steps(&self) -> usize {
-        self.app
-            .world()
-            .get_resource::<FixedCounter>()
-            .unwrap()
-            .count()
-    }
-
-    pub fn step(
-        &mut self,
-        next_step_count: usize,
-        period_us: u32,
-        next_time_us: u32,
-        start_time_us: u32,
-    ) {
-        let fixed_steps_start = self.current_app_steps();
-        println!("-- STEP-START: {}", fixed_steps_start);
+    pub fn step(&mut self, period_us: u32, next_time_us: u32, start_time_us: u32) {
         self.app.world_mut().run_schedule(FixedMain);
-        self.app
-            .world_mut()
-            .run_schedule(TransformSystem::TransformPropagate);
         self.app.world_mut().run_schedule(Main);
-        let fixed_steps_end = self.current_app_steps();
-        println!("-- STEP-DONE: {} - {}", fixed_steps_start, fixed_steps_end);
 
         self.sensors_data = *self.app.world().get_resource::<SensorsData>().unwrap();
-
-        println!(
-            "   SENSORS-DATA: [{} {} {}]",
-            self.sensors_data.bot_physical_position.pos.x,
-            self.sensors_data.bot_physical_position.pos.y,
-            self.sensors_data.bot_physical_position.pos.z
-        );
 
         // Get mutable ref to execution data
         let mut execution_data = self
@@ -159,7 +128,6 @@ impl execution_data::SimulationStepper for RunnerStepper {
 
     fn step(&mut self) {
         self.app_wrapper.step(
-            self.current_step + 1,
             self.step_period_us,
             self.current_time_us + self.step_period_us,
             self.start_time_us,

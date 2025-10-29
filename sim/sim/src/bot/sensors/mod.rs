@@ -12,6 +12,8 @@ use imu::compute_imu_data;
 use line_sensors::compute_sensor_readings;
 use motor_angles::compute_motor_angles_position;
 
+use crate::app_builder::BotUpdate;
+
 #[allow(unused)]
 fn print_sensors_data(sensors_data: Res<SensorsData>) {
     println!("line sensors: {:?}", sensors_data.line_sensors);
@@ -39,7 +41,7 @@ impl Plugin for SensorsModelPlugin {
         app.insert_resource(SensorsData::default())
             .insert_resource(MotorAngles::default())
             .add_systems(
-                RunFixedMainLoop,
+                BotUpdate,
                 (
                     compute_sensor_readings,
                     compute_bot_position,
@@ -47,8 +49,7 @@ impl Plugin for SensorsModelPlugin {
                     compute_imu_data,
                     // print_sensors_data,
                 )
-                    .chain()
-                    .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
+                    .chain(),
             );
     }
 }

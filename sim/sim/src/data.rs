@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::bot::sensors::bot_position::BotPositionDetector;
+use crate::{
+    app_builder::BotUpdate,
+    bot::sensors::{bot_position::BotPositionDetector, imu::compute_imu_data},
+};
 use execution_data::{ExecutionData, MotorAngles};
 
 fn store_data(
@@ -34,11 +37,6 @@ impl Plugin for StoreExecDataPlugin {
             self.step_period_us,
             self.force_initially_started,
         ))
-        .add_systems(
-            RunFixedMainLoop,
-            (store_data)
-                .chain()
-                .in_set(RunFixedMainLoopSystem::AfterFixedMainLoop),
-        );
+        .add_systems(BotUpdate, store_data.after(compute_imu_data));
     }
 }

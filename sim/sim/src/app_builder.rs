@@ -3,10 +3,14 @@ use crate::runner::BotExecutionData;
 use crate::track::{Track, TrackPlugin};
 use crate::ui::GuiSetupPlugin;
 use crate::utils::{EntityFeatures, NormalRandom};
+use bevy::app::MainScheduleOrder;
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::scene::ScenePlugin;
+use bevy::transform::systems::{
+    mark_dirty_trees, propagate_parent_transforms, sync_simple_transforms,
+};
 use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::rapier::prelude::IntegrationParameters;
 use executor::wasm_bindings::exports::robot::Configuration;
@@ -173,27 +177,10 @@ impl Plugin for RapierPhysicsSetupPlugin {
 }
 
 #[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CustomTransformPropagation;
+
+#[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BotUpdate;
-
-#[derive(Resource)]
-pub struct FixedCounter {
-    count: usize,
-}
-
-impl FixedCounter {
-    fn new() -> Self {
-        FixedCounter { count: 0 }
-    }
-
-    #[inline]
-    pub fn count(&self) -> usize {
-        self.count
-    }
-}
-
-fn increment_fixed_step_counter(mut counter: ResMut<FixedCounter>) {
-    counter.count += 1;
-}
 
 pub fn create_app(app_type: AppType, track: Track, step_period_us: u32) -> wasmtime::Result<App> {
     if step_period_us < 100 || step_period_us > 1000 {
@@ -215,7 +202,15 @@ pub fn create_app(app_type: AppType, track: Track, step_period_us: u32) -> wasmt
         app.add_plugins(HeadlessSetupPlugin);
     }
 
+    app.init_schedule(CustomTransformPropagation);
+    app.world_mut()
+        .resource_mut::<MainScheduleOrder>()
+        .insert_after(PostUpdate, CustomTransformPropagation);
+
     app.init_schedule(BotUpdate);
+    app.world_mut()
+        .resource_mut::<MainScheduleOrder>()
+        .insert_after(CustomTransformPropagation, BotUpdate);
 
     if app_type.has_physics() {
         app.add_plugins(RapierPhysicsSetupPlugin);
@@ -226,9 +221,17 @@ pub fn create_app(app_type: AppType, track: Track, step_period_us: u32) -> wasmt
                 dt: step_period_us as f32 / 1_000_000.0,
                 substeps: 1,
             };
-            app.insert_resource(FixedCounter::new());
-            app.add_systems(FixedUpdate, increment_fixed_step_counter);
             app.world_mut().resource_mut::<Time<Virtual>>().pause();
+
+            app.add_systems(
+                CustomTransformPropagation,
+                (
+                    mark_dirty_trees,
+                    propagate_parent_transforms,
+                    sync_simple_transforms,
+                )
+                    .chain(),
+            );
         }
     }
 
