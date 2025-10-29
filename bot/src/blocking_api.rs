@@ -1,6 +1,9 @@
 use crate::{
     line_follower_robot::{
-        devices::{DeviceOperation, device_operation_blocking, device_operation_immediate},
+        devices::{
+            DeviceOperation, device_operation_blocking, device_operation_immediate,
+            set_motors_power,
+        },
         diagnostics::{CsvColumn, write_file, write_line},
     },
     value_ext::DeviceValueExt,
@@ -10,16 +13,14 @@ use crate::{
 pub fn get_line_sensors() -> [u8; 16] {
     let l = device_operation_immediate(DeviceOperation::ReadLineLeft);
     let r = device_operation_immediate(DeviceOperation::ReadLineRight);
+    let mut result = [0; 16];
     (0..8)
         .into_iter()
         .map(|i| l.get_u8(i))
         .chain((0..8).into_iter().map(|i| r.get_u8(i)))
         .enumerate()
-        .fold([0; 16], |mut acc, (i, val)| {
-            acc[i] = val;
-            acc[i + 8] = val;
-            acc
-        })
+        .for_each(|(i, v)| result[i] = v);
+    result
 }
 
 /// Get the current values of motor angles (returns left and right angles with 16 bits of precision).
@@ -91,4 +92,9 @@ pub fn write_plain_file(name: &str, data: &[u8]) {
 /// Write data into a CSV file with the given specification
 pub fn write_csv_file(name: &str, data: &[u8], spec: &[CsvColumn]) {
     write_file(name, data, Some(spec));
+}
+
+/// Set motors PWM duty cycle (from -1000 to 1000).
+pub fn set_motors_pwm(left: i16, right: i16) {
+    set_motors_power(left, right);
 }
