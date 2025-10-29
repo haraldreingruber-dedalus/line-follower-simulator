@@ -1,5 +1,8 @@
 use std::f32::consts::PI;
 
+use bevy::math::Vec3;
+use execution_data::BotPhysicalPosition;
+
 pub struct MockStepper {
     step_period_us: u32,
     current_step: usize,
@@ -66,6 +69,13 @@ impl execution_data::SimulationStepper for MockStepper {
             roll: 0.0,
             pitch: 0.0,
             yaw: 0.0,
+        }
+    }
+
+    fn get_absolute_bot_position(&self) -> BotPhysicalPosition {
+        BotPhysicalPosition {
+            pos: Vec3::ZERO,
+            rot: Vec3::ZERO,
         }
     }
 

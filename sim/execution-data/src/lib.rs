@@ -355,6 +355,28 @@ pub enum BotPosition {
     End,
 }
 
+/// Bot physical positions
+#[derive(Debug, Clone, Copy, Default)]
+pub struct BotPhysicalPosition {
+    pub pos: Vec3,
+    pub rot: Vec3,
+}
+
+impl std::fmt::Display for BotPhysicalPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "pos [{} {} {}] rot [{} {} {}]",
+            (self.pos.x * 1000.0) as i32,
+            (self.pos.y * 1000.0) as i32,
+            (self.pos.z * 1000.0) as i32,
+            self.rot.x.to_degrees() as i32,
+            self.rot.y.to_degrees() as i32,
+            self.rot.z.to_degrees() as i32,
+        )
+    }
+}
+
 /// Wrapper for all sensors data.
 #[derive(Clone, Copy, Resource, Default)]
 pub struct SensorsData {
@@ -363,6 +385,7 @@ pub struct SensorsData {
     pub imu_fused: ImuFusedData,
     pub line_sensors: [f32; 16],
     pub bot_position: BotPosition,
+    pub bot_physical_position: BotPhysicalPosition,
     pub is_out_of_track: bool,
     pub is_over_track_end: bool,
 }
@@ -416,6 +439,9 @@ pub trait SimulationStepper {
     fn get_gyro(&self) -> GyroData;
     /// Get the current IMU fused data.
     fn get_imu_fused_data(&self) -> ImuFusedData;
+
+    /// Get absolute bot position
+    fn get_absolute_bot_position(&self) -> BotPhysicalPosition;
 
     /// Set motor drivers duty cycles.
     fn set_motor_drivers_duty_cycles(&mut self, duty_cycles: MotorDriversDutyCycles);

@@ -943,6 +943,8 @@ impl<S: SimulationStepper> wasm_bindings::diagnostics::Host for BotHost<S> {
         current_fuel: u64,
         text: wasmtime::component::__internal::String,
     ) -> wasmtime::Result<()> {
+        let cp = self.stepper.get_absolute_bot_position();
+
         let current_time = self.setup_current_time(current_fuel)?;
         let char_count = text.as_bytes().len();
         self.skip_time((char_count * 100) as u32)?;
@@ -951,7 +953,8 @@ impl<S: SimulationStepper> wasm_bindings::diagnostics::Host for BotHost<S> {
             let sec = current_time / 1_000_000;
             let ms = (current_time / 1_000) % 1000;
             let us = current_time % 1000;
-            let line = format!("{:02}.{:03}_{:03}: {}", sec, ms, us, text);
+            //let line = format!("{:02}.{:03}_{:03}: {}", sec, ms, us, text);
+            let line = format!("{:02}.{:03}_{:03} {}: {}", sec, ms, us, cp, text);
 
             if self.output_log {
                 println!("{}", &line);

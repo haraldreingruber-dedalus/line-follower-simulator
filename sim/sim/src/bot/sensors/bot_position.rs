@@ -2,19 +2,21 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::track::TrackSegment;
-use execution_data::{BotPosition, SensorsData};
+use execution_data::{BotPhysicalPosition, BotPosition, SensorsData};
 
 #[derive(Component, Default)]
 pub struct BotPositionDetector {}
 
 pub fn compute_bot_position(
     read_rapier_context: ReadRapierContext,
-    bot_query: Query<&GlobalTransform, With<BotPositionDetector>>,
+    bot_query: Query<&Transform, With<BotPositionDetector>>,
     track_segments_query: Query<&TrackSegment>,
     mut sensors_data: ResMut<SensorsData>,
 ) {
     let rapier_context = read_rapier_context.single().unwrap();
-    let origin = bot_query.single().unwrap().translation();
+    let bot_transform = bot_query.single().unwrap();
+    let origin = bot_transform.translation;
+    let (bot_rx, bot_ry, bot_rz) = bot_transform.rotation.to_euler(EulerRot::XYZ);
     let dir = Vec3::NEG_Z;
     let max_toi = 0.1;
 
@@ -34,5 +36,10 @@ pub fn compute_bot_position(
     } else {
         // Bot is out
         BotPosition::Out
+    };
+
+    sensors_data.bot_physical_position = BotPhysicalPosition {
+        pos: origin,
+        rot: Vec3::new(bot_rx, bot_ry, bot_rz),
     };
 }

@@ -1,6 +1,7 @@
 use bevy::app::{App, AppExit};
 use execution_data::{
-    BodyExecutionData, ExecutionData, MotorDriversDutyCycles, SensorsData, WheelExecutionData,
+    BodyExecutionData, BotPhysicalPosition, ExecutionData, MotorDriversDutyCycles, SensorsData,
+    WheelExecutionData,
 };
 use executor::{wasm_bindings::exports::robot::Configuration, wasm_executor, wasmtime};
 
@@ -181,6 +182,10 @@ impl execution_data::SimulationStepper for RunnerStepper {
 
     fn get_imu_fused_data(&self) -> execution_data::ImuFusedData {
         self.app_wrapper.sensors_data().imu_fused
+    }
+
+    fn get_absolute_bot_position(&self) -> BotPhysicalPosition {
+        self.app_wrapper.sensors_data().bot_physical_position
     }
 
     fn set_motor_drivers_duty_cycles(
