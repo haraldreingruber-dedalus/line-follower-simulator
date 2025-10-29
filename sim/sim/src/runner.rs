@@ -1,4 +1,7 @@
-use bevy::app::{App, AppExit};
+use bevy::{
+    app::{App, AppExit, FixedMain, FixedUpdate, Main, Update},
+    transform::TransformSystem,
+};
 use execution_data::{
     BodyExecutionData, BotPhysicalPosition, ExecutionData, MotorDriversDutyCycles, SensorsData,
     WheelExecutionData,
@@ -51,11 +54,24 @@ impl AppWrapper {
         next_time_us: u32,
         start_time_us: u32,
     ) {
-        while self.current_app_steps() < next_step_count {
-            self.app.update();
-        }
+        let fixed_steps_start = self.current_app_steps();
+        println!("-- STEP-START: {}", fixed_steps_start);
+        self.app.world_mut().run_schedule(FixedMain);
+        self.app
+            .world_mut()
+            .run_schedule(TransformSystem::TransformPropagate);
+        self.app.world_mut().run_schedule(Main);
+        let fixed_steps_end = self.current_app_steps();
+        println!("-- STEP-DONE: {} - {}", fixed_steps_start, fixed_steps_end);
 
         self.sensors_data = *self.app.world().get_resource::<SensorsData>().unwrap();
+
+        println!(
+            "   SENSORS-DATA: [{} {} {}]",
+            self.sensors_data.bot_physical_position.pos.x,
+            self.sensors_data.bot_physical_position.pos.y,
+            self.sensors_data.bot_physical_position.pos.z
+        );
 
         // Get mutable ref to execution data
         let mut execution_data = self

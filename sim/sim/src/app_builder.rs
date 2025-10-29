@@ -3,6 +3,7 @@ use crate::runner::BotExecutionData;
 use crate::track::{Track, TrackPlugin};
 use crate::ui::GuiSetupPlugin;
 use crate::utils::{EntityFeatures, NormalRandom};
+use bevy::ecs::schedule::ScheduleLabel;
 use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::scene::ScenePlugin;
@@ -171,6 +172,9 @@ impl Plugin for RapierPhysicsSetupPlugin {
     }
 }
 
+#[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BotUpdate;
+
 #[derive(Resource)]
 pub struct FixedCounter {
     count: usize,
@@ -211,17 +215,20 @@ pub fn create_app(app_type: AppType, track: Track, step_period_us: u32) -> wasmt
         app.add_plugins(HeadlessSetupPlugin);
     }
 
+    app.init_schedule(BotUpdate);
+
     if app_type.has_physics() {
         app.add_plugins(RapierPhysicsSetupPlugin);
 
         if !app_type.has_visualization() {
-            let mut tsm = app.world_mut().get_resource_mut::<TimestepMode>().unwrap();
+            let mut tsm = app.world_mut().resource_mut::<TimestepMode>();
             *tsm = TimestepMode::Fixed {
                 dt: step_period_us as f32 / 1_000_000.0,
                 substeps: 1,
             };
             app.insert_resource(FixedCounter::new());
             app.add_systems(FixedUpdate, increment_fixed_step_counter);
+            app.world_mut().resource_mut::<Time<Virtual>>().pause();
         }
     }
 
