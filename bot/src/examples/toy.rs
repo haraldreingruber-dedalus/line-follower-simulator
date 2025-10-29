@@ -1,4 +1,5 @@
 use crate::{
+    blocking_api::{get_line_sensors, remote_enabled, wait_remote_enabled},
     line_follower_robot::{
         devices::{
             DeviceOperation, device_operation_blocking, device_operation_immediate,
@@ -15,25 +16,18 @@ const PWM_MIN: i16 = -300;
 const MAX_TIME: u32 = 3_000_000;
 
 pub fn toy_run() {
-    device_operation_blocking(DeviceOperation::WaitEnabled);
+    wait_remote_enabled();
 
     write_line("started");
 
-    while device_operation_immediate(DeviceOperation::GetEnabled).get_bool(0) {
-        let left_values = device_operation_immediate(DeviceOperation::ReadLineLeft);
-        let right_values = device_operation_immediate(DeviceOperation::ReadLineRight);
+    while remote_enabled() {
+        let vals = get_line_sensors();
 
-        let left_v = left_values.get_u8(0);
-        let right_v = right_values.get_u8(7);
+        let left_v = vals[0];
+        let right_v = vals[15];
 
         let left = left_v < LINE;
         let right = right_v < LINE;
-
-        let vals: Vec<_> = (0..8)
-            .into_iter()
-            .map(|i| left_values.get_u8(i))
-            .chain((0..8).into_iter().map(|i| right_values.get_u8(i)))
-            .collect();
 
         // write_line(&format!(
         //     " - val {} {} [{} {}] line {} {}",

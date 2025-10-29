@@ -1,10 +1,11 @@
 pub mod async_event_loop;
+pub mod blocking_api;
 pub mod examples;
 #[allow(warnings)]
 pub mod line_follower_robot;
 pub mod value_ext;
 
-use async_event_loop::{FutureHandleExt, pin_boxed};
+use async_event_loop::FutureHandleExt;
 use examples::toy::toy_run;
 use line_follower_robot::devices::{
     DeviceOperation, device_operation_async, device_operation_blocking, poll_loop, set_motors_power,
