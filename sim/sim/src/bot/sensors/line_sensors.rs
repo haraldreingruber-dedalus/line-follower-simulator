@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::bot::BotBodyMarker;
 use crate::track::{TRACK_HALF_WIDTH, TrackSegment};
 use crate::utils::{NormalRandom, point_to_new_origin};
 use execution_data::SensorsData;
+
+use super::bot_position::BotPositionDetector;
 
 #[inline]
 fn line_reflection_attenuation(value: f32, z: f32) -> f32 {
@@ -112,7 +113,7 @@ pub struct LineSensor {}
 pub fn compute_sensor_readings(
     read_rapier_context: ReadRapierContext,
     sensors_query: Query<&GlobalTransform, With<LineSensor>>,
-    bot_body_query: Query<&GlobalTransform, With<BotBodyMarker>>,
+    bot_body_query: Query<&GlobalTransform, With<BotPositionDetector>>,
     track_segments_query: Query<(&TrackSegment, &GlobalTransform)>,
     mut rng: ResMut<NormalRandom>,
     mut sensors_data: ResMut<SensorsData>,
