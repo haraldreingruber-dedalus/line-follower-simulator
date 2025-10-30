@@ -6,7 +6,7 @@ use std::{
 
 use pin_project_lite::pin_project;
 
-use crate::line_follower_robot::devices::{
+use crate::wasm_bindings::devices::{
     DeviceValue, FutureHandle, PollOperationStatus, device_poll, forget_handle, poll_loop,
 };
 

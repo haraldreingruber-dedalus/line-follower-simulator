@@ -1,19 +1,19 @@
 pub mod async_api;
-pub mod async_event_loop;
+pub mod async_framework;
 pub mod blocking_api;
 pub mod examples;
 #[allow(warnings)]
-pub mod line_follower_robot;
-pub mod value_ext;
+pub mod wasm_bindings;
+pub mod wasm_bindings_ext;
 
-use async_event_loop::FutureHandleExt;
+use async_framework::FutureHandleExt;
 use examples::toy::toy_run;
-use line_follower_robot::devices::{
+use wasm_bindings::devices::{
     DeviceOperation, device_operation_async, device_operation_blocking, poll_loop, set_motors_power,
 };
-use line_follower_robot::diagnostics::write_line;
-use line_follower_robot::exports::robot::{Color, Configuration, Guest};
-use value_ext::DeviceValueExt;
+use wasm_bindings::diagnostics::write_line;
+use wasm_bindings::exports::robot::{Color, Configuration, Guest};
+use wasm_bindings_ext::DeviceValueExt;
 
 struct Component;
 
@@ -91,4 +91,4 @@ pub fn simple_blocking_run() {
     }
 }
 
-line_follower_robot::export!(Component with_types_in line_follower_robot);
+wasm_bindings::export!(Component with_types_in wasm_bindings);

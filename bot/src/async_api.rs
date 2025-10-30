@@ -1,11 +1,9 @@
 use futures_lite::future::zip;
 
 use crate::{
-    async_event_loop::FutureHandleExt,
-    line_follower_robot::devices::{
-        DeviceOperation, device_operation_async, device_operation_immediate,
-    },
-    value_ext::DeviceValueExt,
+    async_framework::FutureHandleExt,
+    wasm_bindings::devices::{DeviceOperation, device_operation_async, device_operation_immediate},
+    wasm_bindings_ext::DeviceValueExt,
 };
 
 pub use crate::blocking_api::{

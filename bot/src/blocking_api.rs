@@ -1,12 +1,12 @@
 use crate::{
-    line_follower_robot::{
+    wasm_bindings::{
         devices::{
             DeviceOperation, device_operation_blocking, device_operation_immediate,
             set_motors_power,
         },
         diagnostics::{CsvColumn, write_file, write_line},
     },
-    value_ext::DeviceValueExt,
+    wasm_bindings_ext::DeviceValueExt,
 };
 
 /// Get the current values of all line sensors.
