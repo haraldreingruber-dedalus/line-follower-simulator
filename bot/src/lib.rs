@@ -1,3 +1,4 @@
+pub mod async_api;
 pub mod async_event_loop;
 pub mod blocking_api;
 pub mod examples;
