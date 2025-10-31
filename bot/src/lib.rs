@@ -32,8 +32,8 @@ impl Guest for Component {
         // async_framework::run(examples::nb::toy::toy_run());
         // examples::toy::toy_run();
         // examples::basic_pid::basic_pid_run(4.0);
-        // examples::pid_with_memory::pid_with_memory_run(4.0);
-        async_framework::run(examples::telemetry_test::telemetry_test_run(4.0));
+        examples::pid_with_memory::pid_with_memory_run(4.0);
+        // async_framework::run(examples::telemetry_test::telemetry_test_run(4.0));
     }
 }
 

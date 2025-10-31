@@ -4,15 +4,15 @@ use crate::blocking_api::{
 
 const LINE_THRESHOLD: f32 = 150.0;
 
-const PWM_MAX: i16 = 200;
+const PWM_MAX: i16 = 300;
 const MAX_TIME: u32 = 50_000_000;
 
 const ERR_INTEGRAL_CLIP: f32 = 1_000_000.0;
-const KP: f32 = 40.0;
-const KD: f32 = 10_000_000.0;
+const KP: f32 = 70.0;
+const KD: f32 = 11_000_000.0;
 const KI: f32 = 0.0;
 
-const OUT_PWM_INNER: i16 = -600;
+const OUT_PWM_INNER: i16 = -PWM_MAX;
 
 fn calibrated_line_value(raw: u8) -> f32 {
     (255 - raw) as f32
@@ -149,7 +149,7 @@ pub fn pid_with_memory_run(sensor_spacing_mm: f32) {
         let (pwm_l, pwm_r) = pid.compute_pwm(vals);
 
         // console_log(&format!("LINE {:?}", vals));
-        pid.log_vars();
+        // pid.log_vars();
 
         set_motors_pwm(pwm_l, pwm_r);
 
