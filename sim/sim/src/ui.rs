@@ -331,7 +331,10 @@ pub fn help_dialog(ui: &mut Ui, help_open: &mut bool, base_text_size: f32) {
         let modal = Modal::new(Id::new("Modal Error")).show(ui.ctx(), |ui| {
             ui.vertical_centered(|ui| {
                 let mut cache = CommonMarkCache::default();
-                commonmark_str!(ui, &mut cache, "help.md");
+                // commonmark_str!(ui, &mut cache, "help.md");
+
+                let cmw = CommonMarkViewer::new();
+                cmw.show(ui, &mut cache, "text \"\u{e5ca}\"");
 
                 if icon_button(ui, ICON_CHECK, base_text_size * 4.0).clicked() {
                     ui.close();
