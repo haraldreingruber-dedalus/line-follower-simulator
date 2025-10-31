@@ -977,7 +977,7 @@ impl<S: SimulationStepper> wasm_bindings::diagnostics::Host for BotHost<S> {
         csv: Option<wasmtime::component::__internal::Vec<CsvColumn>>,
     ) -> wasmtime::Result<()> {
         self.setup_current_time(current_fuel)?;
-        //self.skip_time((data.len() * 10) as u32)?;
+        self.skip_time((data.len() * 10) as u32)?;
 
         if let Some(path) = self.workdir_path.as_ref() {
             let bin_name = format!("{}.bin", name);
