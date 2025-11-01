@@ -581,8 +581,12 @@ impl Track {
         }
     }
 
-    pub fn origin(&self) -> Vec2 {
-        self.origin.position
+    pub fn camera_target(&self) -> Vec3 {
+        -self.origin.position.extend(0.0)
+    }
+
+    pub fn camera_radius(&self) -> f32 {
+        self.size.x.max(self.size.y) * 1.25
     }
 
     pub fn spawn_bundles(

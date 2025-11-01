@@ -192,8 +192,6 @@ pub fn icon_button(ui: &mut Ui, icon: &str, size: f32) -> Response {
     ui.label(egui::RichText::new(icon).size(size))
 }
 
-const CAMERA_Z: f32 = 5.0;
-
 enum CameraQuadrant {
     NW,
     N,
@@ -244,10 +242,10 @@ impl CameraQuadrant {
 }
 
 fn reset_camera(po_camera: &mut PanOrbitCamera, quadrant: CameraQuadrant, track: &Track) {
-    po_camera.target_focus = -track.origin().extend(0.0);
+    po_camera.target_focus = track.camera_target();
     po_camera.target_yaw = quadrant.yaw();
     po_camera.target_pitch = quadrant.pitch();
-    po_camera.target_radius = CAMERA_Z;
+    po_camera.target_radius = track.camera_radius();
     po_camera.force_update;
 }
 
@@ -407,17 +405,17 @@ pub fn help_dialog(ui: &mut Ui, help_state: &mut HelpState, base_text_size: f32)
     }
 }
 
-fn setup_camera(mut commands: Commands) {
+fn setup_camera(mut commands: Commands, track: Res<Track>) {
     // Camera
     commands.spawn((PanOrbitCamera {
-        focus: Vec3::ZERO,
-        target_focus: Vec3::ZERO,
+        focus: track.camera_target(),
+        target_focus: track.camera_target(),
         yaw: Some(CameraQuadrant::C.yaw()),
         target_yaw: CameraQuadrant::C.yaw(),
         pitch: Some(CameraQuadrant::C.pitch()),
         target_pitch: CameraQuadrant::C.pitch(),
-        radius: Some(CAMERA_Z),
-        target_radius: CAMERA_Z,
+        radius: Some(track.camera_radius()),
+        target_radius: track.camera_radius(),
         force_update: true,
         axis: [Vec3::X, -Vec3::Z, -Vec3::Y],
         ..Default::default()
