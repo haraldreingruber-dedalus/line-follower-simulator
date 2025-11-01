@@ -336,35 +336,59 @@ pub fn error_dialog(ui: &mut Ui, error_message: &mut Option<String>, base_text_s
     }
 }
 
-const HELP_TEXT: &str = r#"
-# Heading 1
+const HELP_TEXT: &str = "
+# Commands help
 
-This is a paragraph with some **bold** and *italic* text.
-You can also use `inline code` here.
+## Misc
 
-And this is an icon: \u{e5ca}
+| **Keypress** | **Icon** | **Command** |
+| ------------ | -------- | ----------- |
+| `/`  `f1`    | \u{e8fd} | help |
+| `Q`          | \u{e879} | exit |
+|              | \u{e8ff} | zoom in ui |
+|              | \u{e900} | zoom out ui |
 
-## Heading 2
+## Camera
 
-This is another paragraph with a [link to CommonMark](https://commonmark.org/help/) [1].
+| **Keypress** | **Icon** | **Command** |
+| ------------ | -------- | ----------- |
+| `Num7` ... `Num5` ... `Num3` | \u{f1e2} ... \u{e3b5} ... \u{f1e4} | reset camera in directions |
+| `Q`          | \u{e879} | exit |
+| `ctrl` + `arrow keys` / `W`  `A`  `S`  `D` | | orbit (rotate around) |
+| `shift` + `arrow keys` / `W`  `A`  `S`  `D` | | pan (zoom and side) |
+| `alt` + `arrow keys` / `W`  `A`  `S`  `D` | | move on x/y axis |
+| `ctrl` + `shift` + `up` / `down` / `W`  `S` | | move on z axis |
 
-> This is a blockquote. It is useful for quoting text.
+## Bot
 
-### Heading 3
+> *tip: multiple bot visualization is sorted for time ranking (best time up!)*
 
-Here is an unordered list:
-* Item one
-* Item two
-* Item three
+| **Keypress** | **Icon** | **Command** |
+| ------------ | -------- | ----------- |
+|              | \u{e145} | add bot (load .wasm from disk) |
+|              | *click on bot name* + \u{e92e} | remove bot visualization |
 
-And here is an ordered list:
-1. First item
-2. Second item
-3. Third item
+#### test only:
 
-This is an image:
-![A sample image](https://www.example.com/image.png) [1]
-"#;
+| **Keypress** | **Icon** | **Command** |
+| ------------ | -------- | ----------- |
+| `arrow keys` / `W`  `A`  `S`  `D` | | move bot forward/side |
+|              | *PWM sliders* | adjust pwms for forward/side commands |
+
+## Record player
+
+| **Keypress** | **Icon** | **Command** |
+| ------------ | -------- | ----------- |
+| `space`      | \u{e037} \u{e034} | play / pause |
+| `home`       | \u{e045} | restart |
+| `end`        | \u{e044} | go to end |
+| `,`  `PgDown` | \u{e020} | go back *1 sec* |
+| `.`  `PgUp`  | \u{e01f} | go forward *1 sec* |
+| `ctrl` / `shift` + `,`  `PgDown` | `ctrl` / `shift` + \u{e020} | slow rewind |
+| `ctrl` / `shift` + `.`  `PgUp`   | `ctrl` / `shift` + \u{e01f} | slow forward |
+| `ctrl` + `shift` + `,`  `PgDown` | | go back *1 tick* |
+| `ctrl` + `shift` + `.`  `PgUp`   | | go forward *1 tick* |
+";
 
 pub struct HelpState {
     pub is_open: bool,
@@ -384,7 +408,7 @@ pub fn help_dialog(ui: &mut Ui, help_state: &mut HelpState, base_text_size: f32)
     let close = if help_state.is_open {
         let modal = Modal::new(Id::new("Modal Error")).show(ui.ctx(), |ui| {
             ui.vertical_centered(|ui| {
-                egui::ScrollArea::both().show(ui, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
                     let cmw = CommonMarkViewer::new();
                     cmw.show(ui, &mut help_state.cache, HELP_TEXT);
                 });
