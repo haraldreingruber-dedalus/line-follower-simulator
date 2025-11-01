@@ -600,7 +600,7 @@ impl Track {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<StandardMaterial>,
     ) {
-        let mut segment_origin = self.origin.translate_in_direction(TRACK_ORIGIN_OFFSET);
+        let mut segment_origin = self.origin;
 
         for segment in &self.segments {
             segment.spawn(
