@@ -1,4 +1,4 @@
-use futures_lite::future::or;
+use futures_lite::future::{or, zip};
 
 use crate::async_api::*;
 
@@ -140,17 +140,26 @@ impl Pid {
     }
 }
 
-async fn termination_task() {
-    or(sleep_for(MAX_TIME), wait_remote_disabled()).await
+async fn termination_task<'a>(channel: &'a ValueWatcher<()>) {
+    or(sleep_for(MAX_TIME), wait_remote_disabled()).await;
+    channel.update(());
 }
 
-pub async fn race_task(sensor_spacing_mm: f32) {
+async fn line_sensor_task<'a>(channel: &'a ValueWatcher<[u8; 16]>) {
+    loop {
+        let vals = get_line_sensors().await;
+        channel.update(vals);
+    }
+}
+
+async fn race_task<'a>(sensor_spacing_mm: f32, line_values: &'a ValueWatcher<[u8; 16]>) {
     let mut pid = Pid::new(sensor_spacing_mm);
+    let mut values_stream = line_values.stream();
 
     loop {
         pid.update_time();
 
-        let vals = get_line_sensors().await;
+        let vals = values_stream.next().await;
         let (pwm_l, pwm_r) = pid.compute_pwm(vals);
 
         set_motors_pwm(pwm_l, pwm_r);
@@ -163,8 +172,18 @@ pub async fn race_task(sensor_spacing_mm: f32) {
 }
 
 pub async fn run(sensor_spacing_mm: f32) {
+    let termination = ValueWatcher::new();
+    let line_values = ValueWatcher::new();
+
     wait_remote_enabled().await;
     console_log("started");
 
-    or(termination_task(), race_task(sensor_spacing_mm)).await;
+    or(termination_task(&termination), async {
+        zip(
+            line_sensor_task(&line_values),
+            race_task(sensor_spacing_mm, &line_values),
+        )
+        .await;
+    })
+    .await;
 }

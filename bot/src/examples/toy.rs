@@ -8,7 +8,7 @@ const PWM_MAX: i16 = 300;
 const PWM_MIN: i16 = -100;
 const MAX_TIME: u32 = 10_000_000;
 
-pub fn toy_run() {
+pub fn run() {
     wait_remote_enabled();
 
     console_log("started");

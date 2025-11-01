@@ -140,7 +140,7 @@ impl Pid {
     }
 }
 
-pub async fn telemetry_test_run(sensor_spacing_mm: f32) {
+pub async fn run(sensor_spacing_mm: f32) {
     let mut tel_buf = Vec::with_capacity(20000);
     let csv_spec = TelBlock::csv_spec();
 

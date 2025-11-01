@@ -29,12 +29,13 @@ impl Guest for Component {
     }
 
     fn run() -> () {
-        // async_framework::run(examples::nb::toy::toy_run());
-        // examples::toy::toy_run();
-        // examples::basic_pid::basic_pid_run(4.0);
-        // examples::pid_with_memory::pid_with_memory_run(4.0);
-        // async_framework::run(examples::telemetry_test::telemetry_test_run(4.0));
-        async_framework::run(examples::nb::pid_with_memory::pid_with_memory_run(4.0));
+        examples::toy::run();
+        // examples::basic_pid::run(4.0);
+        // examples::pid_with_memory::run(4.0);
+        // async_framework::run(examples::nb::toy::run());
+        // async_framework::run(examples::telemetry_test::run(4.0));
+        // async_framework::run(examples::nb::parallel_tasks::run(4.0));
+        // async_framework::run(examples::nb::tasks_with_channels::run(4.0));
     }
 }
 

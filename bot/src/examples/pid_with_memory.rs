@@ -134,7 +134,7 @@ impl Pid {
     }
 }
 
-pub fn pid_with_memory_run(sensor_spacing_mm: f32) {
+pub fn run(sensor_spacing_mm: f32) {
     wait_remote_enabled();
 
     console_log("started");
