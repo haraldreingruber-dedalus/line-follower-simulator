@@ -8,7 +8,7 @@ use std::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_egui::{
     EguiContexts, EguiGlobalSettings, EguiPlugin, PrimaryEguiContext,
-    egui::{self, Area, Color32, Context, Id, Modal, Response, Ui},
+    egui::{self, Color32, Context, Id, Modal, Response, Ui},
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use egui_material_icons::icons::{
